@@ -1,16 +1,17 @@
-# data
+# Data files
 
-데이터는 원본, 가공본, 평가셋을 분리해 관리합니다.
+Keep source data, generated corpora, embeddings, and evaluation outputs separate from code. Do not commit source or derived data until the provider's terms and publication permission are confirmed.
 
 ```text
 data/
-├─ raw/        # 원본 데이터, Git 제외
-├─ processed/  # 전처리 결과 중 공유 가능한 산출물
-└─ eval/       # 검색/RAG 평가용 데이터
+├── raw/         # Original source files; ignored by Git
+├── processed/   # Local processing outputs; only permission and audit notes are tracked
+└── evaluation/  # Local search/RAG evaluation artifacts; ignored by Git
 ```
 
-## 원칙
-- `raw/` 원본은 수정하지 않습니다.
-- 원본 파일·시트·행 정보를 추적할 수 있게 유지합니다.
-- 데이터 이용조건 확인 전 원문·임베딩·Vector DB를 공개하지 않습니다.
-- 민감정보 및 비밀값은 저장하지 않습니다.
+## Rules
+
+- Keep original files unchanged and record their source and version.
+- Do not publish source text, collected JSONL, embeddings, or vector databases before confirming the applicable terms.
+- Keep credentials and sensitive values in the local `.env` file.
+- Add a data artifact to Git only after its publication scope has been reviewed and approved.

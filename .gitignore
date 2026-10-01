@@ -7,21 +7,18 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.streamlit/secrets.toml
 
 # Cache / Test
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
 .cache/
-
-# Jupyter
 .ipynb_checkpoints/
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
-
-# OS
 Thumbs.db
 Desktop.ini
 .DS_Store
@@ -30,14 +27,16 @@ Desktop.ini
 *.log
 logs/
 
-# Project private/local data
+# Local and unapproved data artifacts
 data/raw/
 data/vector/
+data/evaluation/
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/rag_corpus_permission_request.md
+!data/processed/rag_corpus_source_audit.md
 
 # Local DB
 *.db
 *.sqlite
 *.sqlite3
-
-# Streamlit secrets
-.streamlit/secrets.toml
