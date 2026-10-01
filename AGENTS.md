@@ -11,6 +11,7 @@ These instructions apply only to `encore-ai-campus/mle-02-p1-team2`. Read this f
 - Use `feature/`, `fix/`, `docs/`, `refactor/`, or `chore/` with a concise task name.
 - Implement only the requested scope. Run the relevant project checks when code changes; report unavailable checks and their reason. Do not claim tests passed if they were not run.
 - Use a concise Conventional Commit message: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, or `chore:`.
+- Use the repo-local `$github-task-flow` skill for its detailed branch, verification, commit, push, and PR workflow.
 
 ## Standing GitHub authorization for this repository
 
