@@ -226,7 +226,7 @@ def main() -> None:
     parser.add_argument("--expand-query", action="store_true", help="용어사전 기반 질의 확장")
     parser.add_argument("--glossary", type=Path, default=DEFAULT_GLOSSARY)
     parser.add_argument("--generate", action="store_true", help="검색 사례를 근거로 OpenAI 답변 생성")
-    parser.add_argument("--model", help="생성 모델 (기본값: OPENAI_MODEL 또는 gpt-5-mini)")
+    parser.add_argument("--model", help="생성 모델 (기본값: OPENAI_MODEL 또는 gpt-6-luna)")
     args = parser.parse_args()
     if not 1 <= args.k <= 5:
         parser.error("-k는 1~5 사이여야 합니다.")
