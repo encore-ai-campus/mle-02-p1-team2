@@ -40,3 +40,6 @@ data/processed/*
 *.db
 *.sqlite
 *.sqlite3
+
+# Local Project_1 datasets
+src/Project_1/data/
