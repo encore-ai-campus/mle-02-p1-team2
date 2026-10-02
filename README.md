@@ -2,7 +2,7 @@
 
 SIF 실제 사고사례를 검색해 유사사례와 예방대책을 출처와 함께 제시하고, 산업재해 통계는 별도 정형 데이터 경로에서 분석하는 프로젝트입니다.
 
-전체 데이터 수집부터 전처리, PostgreSQL 저장, 대시보드·RAG 검색·평가까지의 흐름은 [최종 설계도](docs/rag-architecture.md)의 7.4절을 참고합니다.
+전체 데이터 수집부터 전처리, PostgreSQL 저장, 대시보드·RAG 검색·평가까지의 흐름은 [RAG 설계도](docs/rag-architecture.md)와 [Project_1 통합 서비스 아키텍처](docs/product-architecture.md#project_1-통합-서비스-흐름)를 참고합니다.
 
 ## 데이터 구조
 
