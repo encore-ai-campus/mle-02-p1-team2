@@ -1,8 +1,11 @@
 """Day 7·8 노트북의 CSV 로딩과 통계 조회 로직."""
 
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
+
+from services.statistics_storage import download_csvs
 
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data"
@@ -37,7 +40,21 @@ def source_files(data_dir: Path = DATA_DIR) -> dict[tuple[str, int], Path]:
     return {key: path for key, path in files.items() if path.is_file()}
 
 
-def load_stat_csv(metric: str, year: int, path: Path) -> pd.DataFrame:
+def storage_files() -> dict[tuple[str, int], str]:
+    """현재 업로드된 18개 CSV의 영문 Storage 경로."""
+    files = {
+        (metric, year): f"history/{stem}_{year}.csv"
+        for metric, stem in METRIC_FILES.items()
+        for year in YEARS[:-1]
+        # 제공되지 않은 2021 사망만인율은 기존 추세 함수가 NaN으로 유지한다.
+        if (metric, year) != ("사망만인율", 2021)
+    }
+    stems = {**METRIC_FILES, "사업장수": "business_count"}
+    files.update({(metric, 2025): f"{stem}_2025.csv" for metric, stem in stems.items()})
+    return files
+
+
+def load_stat_csv(metric: str, year: int, path: Path | BytesIO) -> pd.DataFrame:
     """Day 7·8처럼 크기가 가로열인 CSV를 공통 long 형식으로 변환한다."""
     wide = pd.read_csv(path, encoding="utf-8-sig")
     if wide.shape[1] != 12 or wide.columns[:2].tolist() != ["대업종", "구분"]:
@@ -56,9 +73,12 @@ def load_stat_csv(metric: str, year: int, path: Path) -> pd.DataFrame:
     return long
 
 
-def load_statistics(data_dir: Path = DATA_DIR) -> pd.DataFrame:
-    """Day 8 통합 데이터와 Day 7의 2025 사업장수를 한 번에 읽는다."""
-    frames = [load_stat_csv(metric, year, path) for (metric, year), path in source_files(data_dir).items()]
+def load_statistics(data_dir: Path | None = None) -> pd.DataFrame:
+    """Storage 설정이 있으면 원격 CSV, 없으면 기존 로컬 CSV를 읽는다."""
+    contents = download_csvs(storage_files()) if data_dir is None else None
+    sources = ({key: BytesIO(body) for key, body in contents.items()}
+               if contents is not None else source_files(DATA_DIR if data_dir is None else data_dir))
+    frames = [load_stat_csv(metric, year, source) for (metric, year), source in sources.items()]
     if not frames:
         return pd.DataFrame(columns=["연도", "대업종", "산업중분류", "규모", "지표", "값"])
     data = pd.concat(frames, ignore_index=True)

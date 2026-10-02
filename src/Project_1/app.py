@@ -19,7 +19,7 @@ st.set_page_config(page_title="산업안전 AI 어시스턴트", page_icon="🦺
 logger = logging.getLogger(__name__)
 
 
-@st.cache_data(show_spinner="산업재해 통계를 불러오는 중입니다.")
+@st.cache_data(ttl=3600, show_spinner="산업재해 통계를 불러오는 중입니다.")
 def get_data():
     return load_statistics()
 
@@ -107,7 +107,12 @@ def render_analysis(report: SafetyAnalysis | None):
                 st.caption(note)
 
 
-data = get_data()
+try:
+    data = get_data()
+except (RuntimeError, ValueError) as exc:
+    logger.error("통계 데이터 로딩 실패: %s", exc)
+    st.error("통계 데이터를 불러오지 못했습니다. 저장소 연결과 데이터 준비 상태를 확인해 주세요.")
+    st.stop()
 years = sorted(data["연도"].unique().tolist(), reverse=True) if not data.empty else [2025]
 industries = ["전체", *sorted(data["산업중분류"].unique().tolist())] if not data.empty else ["전체"]
 sizes = ["전체", *SIZE_ORDER]
