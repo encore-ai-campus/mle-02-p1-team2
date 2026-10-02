@@ -123,7 +123,7 @@ flowchart LR
 - **애플리케이션:** Python
 - **데이터베이스:** PostgreSQL
 - **벡터 검색:** pgvector
-- **임베딩·답변 모델:** 기존 `Day2_산업재해_RAG_적재.ipynb` 설정을 우선 재사용
+- **임베딩·답변 모델:** 기존 `src/sif_rag/` 설정을 우선 재사용
 - **UI:** H3에서는 단일 입력·결과 화면, 이후 Streamlit 등으로 확장
 
 PostgreSQL을 사용하는 이유는 사례 Metadata 필터와 벡터 검색을 함께 처리하고, 이후 통계 SQL 경로와 데이터 저장 기반을 공유하기 위해서다.
