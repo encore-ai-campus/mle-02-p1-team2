@@ -29,6 +29,8 @@ logs/
 
 # Local and unapproved data artifacts
 data/raw/
+
+data/interim/
 data/vector/
 data/evaluation/
 data/processed/*
@@ -40,6 +42,9 @@ data/processed/*
 *.db
 *.sqlite
 *.sqlite3
+
+# Independent nested checkout is local-only; it can contain secrets and private data
+/RAG-project/
 
 # Local Project_1 datasets
 src/Project_1/data/
