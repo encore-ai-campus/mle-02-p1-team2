@@ -23,7 +23,7 @@ def fixture():
 class PreventraUITests(unittest.TestCase):
     def setUp(self):
         self.loader = patch("preventra_ui.statistics_view.get_statistics", return_value=fixture()).start()
-        self.dispatch = patch("preventra_ui.gateway.dispatch", return_value=AssistantResult()).start()
+        self.dispatch = patch("preventra_ui.gateway.dispatch", return_value=AssistantResult(answer="테스트 일반 응답")).start()
         self.addCleanup(patch.stopall)
 
     def app(self):
@@ -42,7 +42,7 @@ class PreventraUITests(unittest.TestCase):
         self.assertEqual(app.session_state["preventra_page"], "안전 어시스턴트")
         self.assertEqual(app.chat_message[0].markdown[0].value, "지게차 점검은?")
         app.run().run()
-        self.assertEqual(len(app.chat_message), 1)
+        self.assertEqual(len([m for m in app.chat_message if m.name == "user"]), 1)
         self.dispatch.assert_called_once()
 
     def test_each_example_is_forwarded_verbatim(self):
@@ -61,10 +61,10 @@ class PreventraUITests(unittest.TestCase):
         self.click(app, "preventra_nav_데이터·출처")
         self.assertEqual(len(app.dataframe), 1)
         self.click(app, "preventra_nav_안전 어시스턴트")
-        self.assertEqual(len(app.chat_message), 1)
+        self.assertEqual(len([m for m in app.chat_message if m.name == "user"]), 1)
         self.click(app, "preventra_new_chat")
         self.assertNotEqual(app.session_state["preventra_session_id"], session)
-        self.assertEqual(len(app.chat_message), 0)
+        self.assertEqual(len([m for m in app.chat_message if m.name == "user"]), 0)
         self.assertIsNone(app.session_state["preventra_pending"])
 
     def test_followup_and_intentional_repeat_are_distinct_events(self):
@@ -72,7 +72,7 @@ class PreventraUITests(unittest.TestCase):
         self.click(app, "preventra_example_지게차 사고사례")
         app.chat_input[0].set_value("지게차 사고사례").run()
         app.run()
-        self.assertEqual(len(app.chat_message), 2)
+        self.assertEqual(len([m for m in app.chat_message if m.name == "user"]), 2)
         self.assertEqual(self.dispatch.call_count, 2)
         request = self.dispatch.call_args.args[0]
         self.assertEqual(request.previous_questions, ("지게차 사고사례",))
@@ -99,7 +99,7 @@ class PreventraUITests(unittest.TestCase):
         self.assertEqual(len(app.metric), 0)
         self.assertTrue(any("통계가 없습니다" in item.value for item in app.info))
         self.click(app, "preventra_example_고소작업 전 확인사항")
-        self.assertEqual(len(app.chat_message), 1)
+        self.assertEqual(len([m for m in app.chat_message if m.name == "user"]), 1)
 
     def test_storage_error_has_safe_notice_and_working_chat(self):
         self.loader.side_effect = RuntimeError("secret-do-not-display")
@@ -109,13 +109,13 @@ class PreventraUITests(unittest.TestCase):
         self.click(app, "preventra_nav_안전 어시스턴트")
         self.assertEqual(len(app.chat_input), 1)
 
-    def test_no_answer_or_empty_evidence_sections_before_connection(self):
+    def test_general_answer_has_no_empty_evidence_sections(self):
         app = self.app()
         self.click(app, "preventra_example_지게차 사고사례")
-        self.assertEqual([m.name for m in app.chat_message], ["user"])
+        self.assertEqual([m.name for m in app.chat_message], ["user", "assistant"])
         self.assertEqual(len(app.expander), 0)
         self.assertEqual(len(app.get("plotly_chart")), 0)
-        self.assertTrue(any("답변 기능 연결 준비 중" in item.value for item in app.info))
+        self.assertEqual(app.chat_message[1].markdown[0].value, "테스트 일반 응답")
 
     def test_result_sections_are_optional(self):
         self.dispatch.return_value = AssistantResult(status="ready", answer="테스트 전용 응답", guides=[Evidence("테스트 가이드", "fixture", "테스트 본문", "p.1")])
@@ -130,9 +130,20 @@ class PreventraUITests(unittest.TestCase):
         app = self.app()
         self.click(app, "preventra_example_지게차 사고사례")
         app.run()
-        self.assertEqual(len(app.chat_message), 1)
+        self.assertEqual(len([m for m in app.chat_message if m.name == "user"]), 1)
         self.dispatch.assert_called_once()
         self.assertTrue(any("답변을 처리하지 못했습니다" in item.value for item in app.warning))
+
+    def test_failed_answer_preserves_user_topic_for_followup(self):
+        self.dispatch.side_effect = RuntimeError("temporary")
+        app = self.app()
+        self.click(app, "preventra_example_지게차 사고사례")
+        self.dispatch.side_effect = None
+        self.dispatch.return_value = AssistantResult(answer="테스트 후속 응답")
+        app.chat_input[0].set_value("그럼 작업 전에는?").run()
+        request = self.dispatch.call_args.args[0]
+        self.assertEqual(request.history[0].question, "지게차 사고사례")
+        self.assertEqual(request.history[0].final_answer, "이전 답변을 완료하지 못했습니다.")
 
 
 if __name__ == "__main__":

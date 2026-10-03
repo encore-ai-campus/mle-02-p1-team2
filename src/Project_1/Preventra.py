@@ -1,7 +1,7 @@
 """Preventra UI entry point; the existing app.py remains independent."""
 import streamlit as st
 
-from preventra_ui.state import consume_pending, initialize, submit_chat
+from preventra_ui.state import initialize, submit_chat
 from preventra_ui.style import apply_style
 from preventra_ui.views import render_assistant, render_home, render_navigation, render_sidebar, render_sources
 
@@ -13,7 +13,6 @@ def main():
     render_sidebar()
     with st.container(key="preventra"):
         render_navigation()
-        consume_pending()
         page = st.session_state.preventra_page
         if page == "홈":
             render_home()

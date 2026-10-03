@@ -66,6 +66,9 @@ def consume_pending():
         session_id=st.session_state.preventra_session_id,
         question=pending["question"],
         previous_questions=tuple(turn["request"].question for turn in st.session_state.preventra_turns),
+        history=tuple(gateway.ConversationTurn(turn["request"].question,
+                      turn["result"].answer if turn["result"].status == "ready" else "이전 답변을 완료하지 못했습니다.")
+                      for turn in st.session_state.preventra_turns),
     )
     try:
         result = gateway.dispatch(request)

@@ -2,7 +2,7 @@
 import streamlit as st
 
 from preventra_ui.gateway import AssistantResult
-from preventra_ui.state import PAGES, navigate, new_chat, queue_question, submit_home
+from preventra_ui.state import PAGES, consume_pending, navigate, new_chat, queue_question, submit_home
 from preventra_ui.statistics_view import render_loaded_coverage, render_statistics_banner
 
 EXAMPLES = ("지게차 사고사례", "고소작업 전 확인사항", "우리 업종의 사고 추이")
@@ -43,7 +43,7 @@ def render_home():
         st.form_submit_button("안전 어시스턴트에서 질문하기 →", on_click=submit_home, type="primary", width="stretch")
     if st.session_state.preventra_input_notice:
         st.info(st.session_state.preventra_input_notice)
-    st.caption("질문으로 시작해 보세요 · 현재는 질문 전달만 가능하며 답변 기능은 연결 준비 중입니다.")
+    st.caption("질문으로 시작해 보세요 · 필요한 사고사례·안전가이드·통계를 찾아 출처와 함께 답합니다.")
     for column, question in zip(st.columns(3), EXAMPLES):
         column.button(question, key=f"preventra_example_{question}", on_click=queue_question, args=(question,), width="stretch")
     st.write("")
@@ -64,29 +64,44 @@ def render_home():
       <p>Preventra는 산업안전 정보 활용을 위한 가상 기업·교육 프로젝트입니다.</p></footer>''')
 
 
+def render_source(item):
+    labels = {"source": "자료", "doc_id": "사례 ID", "guide_id": "GUIDE ID", "title": "문서명",
+              "section": "절", "page": "PDF 페이지", "sheet": "시트", "row_number": "연번"}
+    for key, label in labels.items():
+        if item.source.get(key):
+            st.write(f"{label}: {item.source[key]}")
+    if item.location:
+        st.caption(item.location)
+    url = item.source.get("source_url")
+    if url and url.startswith("https://"):
+        st.link_button("원문 출처 열기", url)
+
+
 def render_cases(cases):
     st.markdown("#### 관련 사고사례")
     for case in cases:
         with st.container(border=True):
-            st.write(case.title)
-            st.write(case.excerpt)
-            st.caption(f"출처: {case.source_id} · {case.location}")
+            st.write(f"[{case.reference}] {case.title}")
+            st.write(case.excerpt[:500])
+            with st.expander("사고사례 원문·출처 확인"):
+                st.write(case.excerpt)
+                render_source(case)
 
 
 def render_guides(guides):
     st.markdown("#### 안전가이드 근거")
     for guide in guides:
-        with st.expander(guide.title):
+        with st.expander(f"[{guide.reference}] {guide.title}"):
             st.write(guide.excerpt)
-            st.caption(f"GUIDE: {guide.source_id} · {guide.location}")
+            render_source(guide)
 
 
-def render_result(result: AssistantResult):
+def render_result(result: AssistantResult, request_id=""):
     if result.status == "not_connected":
         st.caption("질문 전달 완료 · 답변 기능 연결 준비 중")
         return
     if result.status == "error":
-        st.warning("질문은 유지했지만 답변을 처리하지 못했습니다. 잠시 후 새 질문으로 다시 시도해 주세요.")
+        st.warning(result.answer or "질문은 유지했지만 답변을 처리하지 못했습니다. 잠시 후 새 질문으로 다시 시도해 주세요.")
         return
     if result.answer:
         st.write(result.answer)
@@ -96,17 +111,20 @@ def render_result(result: AssistantResult):
         render_guides(result.guides)
     if result.figures:
         st.markdown("#### 관련 통계")
-        for figure in result.figures:
-            st.plotly_chart(figure, width="stretch")
+        for index, figure in enumerate(result.figures):
+            st.plotly_chart(figure, width="stretch", key=f"preventra_answer_{request_id}_{index}")
         st.caption(result.statistics_caption)
+    elif result.statistics_caption:
+        with st.expander("통계 출처·집계 범위"):
+            st.caption(result.statistics_caption)
 
 
 def render_assistant():
     st.html('<div class="pv-eyebrow">Your Safety Workspace</div>')
     st.title("Preventra Safety Assistant")
     st.write("작업 상황을 설명하거나 사고사례·안전가이드·통계에 대해 질문해 주세요.")
-    st.info("답변 기능 연결 준비 중입니다. 지금은 질문을 전달하고 화면에서 확인할 수 있습니다. 사고사례 검색·안전가이드 조회·통계 질문 분석은 아직 실행하지 않습니다.")
-    if not st.session_state.preventra_turns:
+    st.caption("필요한 자료만 찾아 답합니다. 문서의 적용 범위와 출처를 함께 확인해 주세요.")
+    if not st.session_state.preventra_turns and not st.session_state.preventra_pending:
         with st.container(height=250, border=False):
             st.markdown("### 현장의 질문에서 시작하세요")
             st.write("작업명, 사용하는 장비, 궁금한 점을 함께 적어 주세요.")
@@ -114,7 +132,14 @@ def render_assistant():
     for turn in st.session_state.preventra_turns:
         with st.chat_message("user"):
             st.write(turn["request"].question)
-        render_result(turn["result"])
+        with st.chat_message("assistant"):
+            render_result(turn["result"], turn["request"].request_id)
+    if st.session_state.preventra_pending:
+        with st.chat_message("user"):
+            st.write(st.session_state.preventra_pending["question"])
+        with st.spinner("질문을 확인하고 필요한 자료를 찾고 있습니다…"):
+            consume_pending()
+        st.rerun()
 
 
 def render_sources():
