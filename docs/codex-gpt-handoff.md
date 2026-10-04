@@ -70,3 +70,14 @@ python scripts/agent_pair.py \
 - `REQUEST_CHANGES`는 Codex 수정 1회 후 재검토한다. 해결되지 않으면 브랜치에서 직접 판단한다.
 - diff가 너무 크거나 민감 경로가 제외되어 검토가 불완전하면 `HOLD`로 취급한다.
 - API 전송 대상, GPT 패치, Codex 명령 로그를 확인한 후에만 변경을 다른 브랜치에 반영한다.
+
+## 실행 제한과 결과 코드
+
+- API 제한 시간은 요청마다 기본 300초이고, Codex 작업 제한 시간은 실행마다 기본 1800초입니다. 각각 api-timeout, codex-timeout 옵션으로 조정할 수 있습니다.
+- Codex가 시간 초과되면 로그를 저장하고 worktree를 보존합니다.
+- GPT 패치는 최대 200,000자이며 텍스트 확장자와 민감 경로 필터를 통과해야 적용됩니다. 지원하지 않는 경로나 바이너리 패치는 적용 전에 중단됩니다.
+- 최종 검토가 APPROVE이면 종료 코드 0, HOLD 또는 해결되지 않은 REQUEST_CHANGES이면 종료 코드 3입니다. API, Git, Codex 실행 오류는 종료 코드 2입니다.
+- Codex는 workspace-write sandbox 안에서 동작합니다. 승인 프롬프트를 사용하지 않아도 sandbox 경계는 유지되며, 경계 밖 파일 수정이나 네트워크 접근이 필요하면 작업이 차단될 수 있습니다. 정책은 https://learn.chatgpt.com/docs/agent-approvals-security 에서 확인할 수 있습니다.
+
+Responses 호출에는 store=false를 적용해 응답 객체의 기본 30일 application-state 저장을 끕니다. 이것만으로 Zero Data Retention이 켜지는 것은 아니며, 계정 설정에 따라 abuse-monitoring 로그 보관 정책은 별도로 적용됩니다. 민감한 코드라면 전달 전에 context 파일과 최종 diff를 확인하고, 조직 데이터 보존 설정을 확인하세요. 세부 내용은 https://developers.openai.com/api/docs/guides/your-data 에서 확인할 수 있습니다.
+자동 전송 전에 task, context 파일, GPT 패치, 최종 diff에서 흔한 API 키·토큰·개인키 형태를 추가로 차단합니다. 이 탐지는 모든 비밀정보를 판별하지 못하므로 저장소 내용과 작업 내용을 사람이 먼저 확인해야 합니다.
