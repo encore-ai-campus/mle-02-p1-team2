@@ -127,12 +127,14 @@ class ConversationStore:
         return True
 
 
-@lru_cache(maxsize=1)
 def get_store():
-    from services.safety_rag import DB_URL, DB_CONFIG_ERROR, setting
-    if DB_CONFIG_ERROR:
-        raise HistoryUnavailable("대화 저장소 설정을 확인해 주세요.")
-    store = ConversationStore(lambda: psycopg.connect(DB_URL, connect_timeout=5),
-                              scope=setting("PREVENTRA_HISTORY_SCOPE") or "preventra-local")
+    from services.safety_rag import setting
+    from preventra_runtime import require_database
+    return _configured_store(require_database(), setting("PREVENTRA_HISTORY_SCOPE") or "preventra-local")
+
+
+@lru_cache(maxsize=4)
+def _configured_store(database_url, scope):
+    store = ConversationStore(lambda: psycopg.connect(database_url, connect_timeout=5), scope=scope)
     store.ensure_schema()
     return store
