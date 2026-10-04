@@ -1,6 +1,12 @@
-# 산업안전 사고예방 도우미 앱
+﻿# 산업안전 사고예방 도우미 앱
 
-루트 `streamlit_app.py`의 BM25·pgvector 시연과 별도로 실행하는 SIF/KOSHA 통합 RAG 앱입니다.
+`app.py`는 SIF/KOSHA 통합 RAG 앱입니다. `Preventra.py`는 같은 서비스와 통계를 재사용하는 별도 Preventra 진입점입니다. 루트 `streamlit_app.py`의 BM25·pgvector 시연과도 구분해 실행합니다.
+
+Preventra 화면은 저장소 루트에서 다음처럼 실행합니다.
+
+```bash
+uv run --no-project --python 3.14 --with-requirements apps/accident_assistant/requirements.txt streamlit run apps/accident_assistant/Preventra.py
+```
 
 ## 로컬 실행
 
