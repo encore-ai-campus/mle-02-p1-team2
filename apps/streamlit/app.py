@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 
@@ -12,7 +17,6 @@ from src.sif_rag.search import bm25, load_corpus
 from src.sif_rag.vector_store import vector_search
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_CORPUS = PROJECT_ROOT / "data" / "processed" / "sif_rag_documents.jsonl"
 
 

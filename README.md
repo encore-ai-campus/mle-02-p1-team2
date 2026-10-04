@@ -24,7 +24,7 @@ SIF 실제 사고사례를 검색해 유사사례와 예방대책을 출처와 �
 ## 저장소 구조
 
 - `src/sif_rag/`: 데이터 수집·전처리·검색·평가 코드
-- `streamlit_app.py`: Streamlit 시연 화면
+- `apps/streamlit/app.py`: Streamlit 시연 화면
 - `apps/accident_assistant/`: SIF/KOSHA 통합 Streamlit 앱과 앱 전용 서비스·의존성·테스트
 - `sql/`: PostgreSQL 및 pgvector 스키마
 - `scripts/`: 로컬 개발환경 설정 스크립트
@@ -204,7 +204,7 @@ python -m src.sif_rag.rag_cli "건설 현장의 추락 위험은?" --industry �
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
+.\.venv\Scripts\python.exe -m streamlit run apps/streamlit/app.py
 ```
 
 기본 화면은 검색 방식(BM25/pgvector), 업종 대분류 필터, 사례 수, 선택적 용어사전 확장, 생성형 답변/검색 결과 표시를 제공합니다. 화면은 `data/processed/sif_rag_documents.jsonl`을 읽고, 수정 시 로컬 캐시를 갱신합니다.
