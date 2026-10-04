@@ -7,6 +7,7 @@ import pandas as pd
 from streamlit.testing.v1 import AppTest
 
 from preventra_ui.gateway import AssistantResult, Evidence
+from preventra_fakes import MemoryStore
 
 ENTRY = Path(__file__).resolve().parents[1] / "Preventra.py"
 
@@ -22,6 +23,8 @@ def fixture():
 
 class PreventraUITests(unittest.TestCase):
     def setUp(self):
+        self.store = MemoryStore()
+        patch("preventra_ui.state.get_store", return_value=self.store).start()
         self.loader = patch("preventra_ui.statistics_view.get_statistics", return_value=fixture()).start()
         self.dispatch = patch("preventra_ui.gateway.dispatch", return_value=AssistantResult(answer="테스트 일반 응답")).start()
         self.addCleanup(patch.stopall)

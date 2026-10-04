@@ -2,7 +2,7 @@
 import streamlit as st
 
 from preventra_ui.gateway import AssistantResult
-from preventra_ui.state import PAGES, consume_pending, navigate, new_chat, queue_question, submit_home
+from preventra_ui.state import PAGES, consume_pending, navigate, new_chat, open_conversation, queue_question, retry_save, submit_home
 from preventra_ui.statistics_view import render_loaded_coverage, render_statistics_banner
 
 EXAMPLES = ("지게차 사고사례", "고소작업 전 확인사항", "우리 업종의 사고 추이")
@@ -13,11 +13,21 @@ def render_sidebar():
         st.html('<div class="pv-brand">Preventra<span> ◈</span></div>')
         st.caption("현장의 판단을 돕는 안전 정보")
         st.button("＋ 새 대화", key="preventra_new_chat", on_click=new_chat, type="primary", width="stretch")
-        st.caption("새 대화를 시작하면 현재 화면의 질문이 지워집니다.")
+        st.caption("새 대화를 시작해도 저장된 대화는 유지됩니다.")
         st.divider()
         st.markdown("### 최근 대화")
-        st.html('<div class="pv-empty">저장된 대화가 없습니다.<br>대화 저장·불러오기는 준비 중입니다.</div>')
-        st.caption("현재 질문은 이 세션에서만 유지됩니다.")
+        if st.session_state.preventra_history_notice:
+            st.warning(st.session_state.preventra_history_notice)
+            st.button("저장 다시 시도" if st.session_state.preventra_unsaved else "목록 새로고침",
+                      key="preventra_retry_save", on_click=retry_save, width="stretch")
+        if not st.session_state.preventra_recent:
+            st.caption("아직 저장된 대화가 없습니다.")
+        for conversation in st.session_state.preventra_recent:
+            st.button(conversation.title, key=f"preventra_conversation_{conversation.conversation_id}",
+                      on_click=open_conversation, args=(conversation.conversation_id,), width="stretch",
+                      type="primary" if conversation.conversation_id == st.session_state.preventra_conversation_id else "secondary",
+                      help=f"최근 사용: {conversation.updated_at:%Y-%m-%d %H:%M %Z}")
+        st.caption("이 작업공간의 최근 대화 · 최대 50개")
         st.button("홈으로 돌아가기", key="preventra_sidebar_home", on_click=navigate, args=("홈",), width="stretch")
 
 
@@ -124,6 +134,8 @@ def render_assistant():
     st.title("Preventra Safety Assistant")
     st.write("작업 상황을 설명하거나 사고사례·안전가이드·통계에 대해 질문해 주세요.")
     st.caption("필요한 자료만 찾아 답합니다. 문서의 적용 범위와 출처를 함께 확인해 주세요.")
+    if st.session_state.preventra_input_notice:
+        st.info(st.session_state.preventra_input_notice)
     if not st.session_state.preventra_turns and not st.session_state.preventra_pending:
         with st.container(height=250, border=False):
             st.markdown("### 현장의 질문에서 시작하세요")

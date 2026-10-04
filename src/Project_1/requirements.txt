@@ -9,3 +9,4 @@ langchain-openai==1.6.3
 langchain-postgres==0.0.18
 pgvector==0.3.6
 pydantic==2.13.5
+langfuse==4.16.0

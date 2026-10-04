@@ -43,7 +43,7 @@ def dispatch(request: AssistantRequest) -> AssistantResult:
     from preventra_ui.statistics_view import get_statistics
 
     agent = SafetyAgent(backend=SafetyTools(statistics_loader=get_statistics))
-    result = agent.run(request.question, request.history, request.request_id)
+    result = agent.run(request.question, request.history, request.request_id, conversation_id=request.session_id)
     cases, guides, figures, captions = [], [], [], []
     selected = {item.reference for item in result.evidence}
     for item in result.evidence:
