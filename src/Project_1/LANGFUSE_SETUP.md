@@ -1,5 +1,8 @@
 # Preventra Conversation History & Langfuse (3차)
 
+> Cloud 배포 설정과 최신 검증은 [STREAMLIT_CLOUD_SETUP.md](STREAMLIT_CLOUD_SETUP.md)를
+> 확인하세요. 아래 저장 구조는 유지하며, 운영 데이터는 Supabase만 허용합니다.
+
 ## 환경 설정과 실행
 
 검증 환경: Python 3.12, Streamlit 1.64.0, LangChain 1.4.2,
@@ -18,7 +21,7 @@ LANGFUSE_TRACING_ENABLED=true
 PREVENTRA_HISTORY_SCOPE=preventra-local
 ```
 
-Base URL은 키를 발급받은 프로젝트의 리전 또는 자체 호스팅 주소와 일치해야 합니다.
+Base URL은 키를 발급받은 Langfuse Cloud 프로젝트의 리전과 일치해야 합니다.
 기본값은 EU Cloud입니다. US는 `https://us.cloud.langfuse.com`, Japan은
 `https://jp.cloud.langfuse.com`입니다. 키 변경 후 실행 프로세스를 다시 시작하세요.
 기존 `services.safety_rag.setting()`의 Streamlit Secrets 우선순위를 유지합니다.
@@ -29,15 +32,10 @@ DB 계정에는 기존 `chat_history` 읽기·쓰기와 메타데이터 테이�
 초기화에 실패하면 UI는 저장소 안내를 표시하고 저장되지 않은 대화를 저장된 것처럼 처리하지 않습니다.
 
 ```bash
-cd /home/playdata/workspace/mle-02-p1-team2/src/Project_1
-UV_PROJECT_ENVIRONMENT=/home/playdata/workspace/rag-project-1/.venv UV_NO_SYNC=1 \
-  /home/playdata/.local/bin/uv run streamlit run Preventra.py \
-  --server.headless true --server.address 127.0.0.1 --server.port 8513 \
-  --browser.gatherUsageStats false
+# 저장소 루트, Python 3.12 가상환경
+python -m pip install -r src/Project_1/requirements.txt
+python -m streamlit run src/Project_1/Preventra.py
 ```
-
-저장소 루트의 Python 3.14 요구와 기존 3.12 환경 차이 때문에 현재 환경에서는
-`UV_NO_SYNC=1`을 사용합니다. 기존 환경의 패키지는 변경하지 않습니다.
 
 ## 저장 구조
 
@@ -100,9 +98,7 @@ Tool artifact 및 원본 예외 메시지를 의도적으로 기록하지 않습
 ## 검증
 
 ```bash
-cd /home/playdata/workspace/mle-02-p1-team2
-PYTHONPATH=src/Project_1 /home/playdata/workspace/rag-project-1/.venv/bin/python \
-  -m unittest discover -s src/Project_1/tests -v
+PYTHONPATH=src/Project_1 python -m unittest discover -s src/Project_1/tests -v
 ```
 
 오프라인 테스트는 DB와 모델을 대체합니다. Observability 검사는 실제 Langfuse SDK와
@@ -110,7 +106,7 @@ PYTHONPATH=src/Project_1 /home/playdata/workspace/rag-project-1/.venv/bin/python
 검사하며 외부 Langfuse 프로젝트를 호출하지 않습니다. 실제 DB/모델 검증은 별도 수행하고,
 대화 원문과 키를 공개 저장소에 커밋하지 않습니다.
 
-### 2026-10-04 결과
+### 3차 당시 결과 (Cloud 연결 전)
 
 - 오프라인 47개 통과. 실제 Langfuse 4.16.0 SDK의 로컬 exporter로 한 질문당 Agent root,
   Tool 자식, generation 사용량, 동일 대화 session 연결, 개인정보/secret 패턴 제거 확인.

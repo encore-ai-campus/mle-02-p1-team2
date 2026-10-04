@@ -2,15 +2,21 @@
 import pandas as pd
 import streamlit as st
 
-from services.statistics import filter_statistics, industry_trend, kpi_value, load_statistics
+from services.statistics import filter_statistics, industry_trend, kpi_value
 from services.visualization import plot_six_year_line
+from preventra_runtime import load_cloud_statistics, require_storage
 
 COUNT_METRICS = ("사고재해자수", "사고사망자수")
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
 def get_statistics():
-    return load_statistics()
+    require_storage()
+    return _cached_statistics()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _cached_statistics():
+    return load_cloud_statistics()
 
 
 def read_statistics():

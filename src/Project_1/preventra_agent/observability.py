@@ -5,13 +5,15 @@ import json
 import logging
 import os
 import re
+from urllib.parse import urlsplit
 
 logger = logging.getLogger(__name__)
 REDACTED = "[REDACTED]"
-SENSITIVE_KEY = re.compile(r"(?i)(password|passwd|secret|api[_-]?key|authorization|credential|database[_-]?url|connection[_-]?string|access[_-]?token|refresh[_-]?token|email|phone|address|full[_-]?name|person[_-]?name)")
+SENSITIVE_KEY = re.compile(r"(?i)(password|passwd|secret|api[_-]?key|authorization|credential|(?:database|db)[_-]?url|connection[_-]?string|access[_-]?token|refresh[_-]?token|email|phone|address|full[_-]?name|person[_-]?name)")
 PATTERNS = (
     re.compile(r"(?i)(?:postgres(?:ql)?|mysql|mongodb)://[^\s\"'<>]+"),
     re.compile(r"(?i)\b(?:sk|pk)-(?:proj-|lf-)?[A-Za-z0-9_-]{8,}"),
+    re.compile(r"\bsb_secret_[A-Za-z0-9_-]+"),
     re.compile(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}"),
     re.compile(r"(?<!\d)(?:\+82[- .]?)?0\d{1,2}[- .]?\d{3,4}[- .]?\d{4}(?!\d)"),
     re.compile(r"(?<!\d)\d{6}[- ]?[1-8]\d{6}(?!\d)"),
@@ -75,8 +77,13 @@ def tracing_settings():
 def _client(public_key, secret_key, base_url):
     from langfuse import Langfuse
     from dotenv import dotenv_values
-    from services.safety_rag import REPO_ROOT
+    from services.safety_rag import REPO_ROOT, setting
     values = {**dotenv_values(REPO_ROOT / ".env"), **os.environ}
+    # Root-level Cloud Secrets are not necessarily present in os.environ when
+    # invoked outside Streamlit's server startup. Include effective values.
+    for name in ("OPENAI_API_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_DB_URL", "DATABASE_URL",
+                 "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY"):
+        values[name] = setting(name)
     secrets = tuple(str(value) for name, value in values.items() if value and SENSITIVE_KEY.search(name))
     return Langfuse(public_key=public_key, secret_key=secret_key, base_url=base_url,
                     timeout=5, mask_otel_spans=export_mask(secrets))
@@ -86,6 +93,13 @@ def get_tracing_client():
     try:
         public, secret, url, enabled = tracing_settings()
         if not public or not secret or not enabled:
+            return None
+        endpoint = urlsplit(url)
+        if (endpoint.scheme != "https" or endpoint.hostname not in
+                {"cloud.langfuse.com", "us.cloud.langfuse.com", "jp.cloud.langfuse.com", "hipaa.cloud.langfuse.com"}
+                or endpoint.username or endpoint.password or endpoint.query or endpoint.fragment
+                or endpoint.path not in ("", "/") or endpoint.port not in (None, 443)):
+            logger.warning("Preventra tracing requires a valid Langfuse Cloud endpoint")
             return None
         return _client(public, secret, url)
     except Exception:

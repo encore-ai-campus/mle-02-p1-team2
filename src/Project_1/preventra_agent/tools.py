@@ -11,10 +11,11 @@ from pydantic import BaseModel, ConfigDict, Field
 from preventra_agent.models import Evidence, ToolResult
 from services.query_analysis import analyze_query
 from services.statistics import (
-    METRIC_FILES, SIZE_ORDER, SOURCE_2025, YEARS, filter_statistics,
-    industry_totals, industry_trend, kpi_value, load_statistics,
+    SIZE_ORDER, YEARS, filter_statistics,
+    industry_totals, industry_trend, kpi_value, storage_files,
 )
 from services.visualization import plot_industry_bar, plot_six_year_line
+from preventra_runtime import load_cloud_statistics, require_database
 
 Metric = Literal["사고재해자수", "사고사망자수", "사망만인율"]
 
@@ -43,11 +44,12 @@ class TrendInput(BaseModel):
 
 def default_rag():
     from services.safety_rag import get_service
+    require_database()
     return get_service()
 
 
 class SafetyTools:
-    def __init__(self, rag_factory=default_rag, statistics_loader=load_statistics):
+    def __init__(self, rag_factory=default_rag, statistics_loader=load_cloud_statistics):
         self.rag_factory = rag_factory
         self.statistics_loader = statistics_loader
         self._data = None
@@ -111,7 +113,8 @@ class SafetyTools:
     def source(self, metric, years, industry, size):
         return {
             "source": "한국산업안전보건공단 산업중분류별 규모별 통계 CSV",
-            "files": [SOURCE_2025[metric] if year == 2025 else f"history/{METRIC_FILES[metric]}_{year}.csv" for year in years],
+            "files": [storage_files()[(metric, year)] for year in years],
+            "provider": "supabase_storage",
             "years": years, "industry": industry or "확보된 산업중분류 전체",
             "size": size or "확보된 규모 전체", "metric": metric,
             "aggregation": "단일 산업·규모 원자료율" if metric == "사망만인율" else "확보된 셀의 건수 합계; 누락값 제외",
