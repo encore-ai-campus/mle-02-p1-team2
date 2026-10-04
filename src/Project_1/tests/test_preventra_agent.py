@@ -1,7 +1,7 @@
 """Meaningful offline checks for routing loop, grounding and statistics safety."""
 import json
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 import pandas as pd
 from langchain_core.documents import Document
@@ -44,6 +44,10 @@ def statistics():
 
 
 class AgentTests(unittest.TestCase):
+    def setUp(self):
+        patch("preventra_agent.observability.get_tracing_client", return_value=None).start()
+        self.addCleanup(patch.stopall)
+
     def backend(self):
         self.rag = Mock()
         self.rag.embeddings.embed_query.return_value = [0.0] * 1536

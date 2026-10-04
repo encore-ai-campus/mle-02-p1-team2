@@ -47,7 +47,14 @@ class SafetyAgent:
         self.model = model if model is not None else create_model()
         self.backend = backend if backend is not None else SafetyTools()
 
-    def run(self, question, history=(), request_id=""):
+    def run(self, question, history=(), request_id="", conversation_id=""):
+        from preventra_agent.observability import agent_trace
+        with agent_trace(question, request_id, conversation_id) as observation:
+            result = self._run(question, history, request_id, observation.config)
+            observation.finish(result)
+            return result
+
+    def _run(self, question, history, request_id, config=None):
         tools = {tool.name: tool for tool in self.backend.build()}
         model = self.model.bind_tools(list(tools.values()), strict=True,
                                       parallel_tool_calls=False, response_format=FinalAnswer)
@@ -59,7 +66,7 @@ class SafetyAgent:
         results, trace, seen = [], [], set()
         for _ in range(MAX_ROUNDS):
             try:
-                reply = model.invoke(messages)
+                reply = model.invoke(messages, config=config) if config else model.invoke(messages)
             except Exception as exc:
                 trace.append({"stage": "model", "error_type": type(exc).__name__,
                               "code": getattr(exc, "code", None), "param": getattr(exc, "param", None)})
@@ -98,7 +105,7 @@ class SafetyAgent:
                     continue
                 seen.add(fingerprint)
                 try:
-                    message = tools[name].invoke(call)
+                    message = tools[name].invoke(call, config=config)
                     result = message.artifact
                     if not isinstance(result, ToolResult):
                         raise ValueError("Invalid tool artifact")

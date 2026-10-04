@@ -1,6 +1,6 @@
 ﻿# Preventra UI
 
-> 이 문서는 1차 UI 구축 당시의 기록입니다. 현재 Single Agent 연결, Tool 구성과 검증 결과는 [PREVENTRA_AGENT.md](PREVENTRA_AGENT.md)를 참고하세요. 아래의 미연결 상태 설명은 1차 기준입니다.
+> 이 문서는 1차 UI 구축 당시의 기록입니다. Single Agent 연결은 [PREVENTRA_AGENT.md](PREVENTRA_AGENT.md), 현재 대화 저장·복원과 추적은 [LANGFUSE_SETUP.md](LANGFUSE_SETUP.md)를 참고하세요. 아래의 미연결 상태 설명은 1차 기준입니다.
 
 독립 진입점은 `Preventra.py`입니다. 기존 `app.py`, `services/`, 공용 Streamlit 테마와 의존성 파일은 변경하지 않습니다.
 

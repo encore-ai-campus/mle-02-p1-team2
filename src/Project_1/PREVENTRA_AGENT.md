@@ -1,5 +1,7 @@
 ﻿# Preventra Single Agent (2차)
 
+> 이 문서는 2차 구현 기록입니다. 현재 대화 저장·복원과 Langfuse 설정/검증은 [LANGFUSE_SETUP.md](LANGFUSE_SETUP.md)를 참고하세요. 아래의 세션 전용 상태와 3차 연결 예정 설명은 2차 기준입니다.
+
 ## 구현 범위
 
 `Preventra.py`의 현재 세션 질문을 하나의 Tool-calling 모델이 처리합니다. 인사와 조건 확인은 Tool 없이, 근거가 필요한 요청은 관련 Tool만 선택합니다. 기존 `app.py`, Notebook, 데이터 파일, 기존 `services/` 인터페이스는 변경하지 않습니다. LangGraph / MCP / Langfuse / 과거 대화 목록·복원·제목 생성은 구현하지 않습니다.

@@ -22,7 +22,8 @@ def main():
             render_sources()
     # Root-level chat_input stays pinned at the bottom of the assistant screen.
     if page == "안전 어시스턴트":
-        st.chat_input("작업 상황이나 궁금한 안전 정보를 입력해 주세요", key="preventra_chat_question", on_submit=submit_chat, max_chars=4000)
+        st.chat_input("작업 상황이나 궁금한 안전 정보를 입력해 주세요", key="preventra_chat_question", on_submit=submit_chat, max_chars=4000,
+                      disabled=st.session_state.preventra_unsaved is not None)
 
 
 if __name__ == "__main__":
