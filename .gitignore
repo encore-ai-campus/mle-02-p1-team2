@@ -46,5 +46,7 @@ data/processed/*
 # Independent nested checkout is local-only; it can contain secrets and private data
 /RAG-project/
 
-# Local Project_1 datasets
+# Local app datasets
+apps/accident_assistant/data/
+# Legacy path retained so existing local datasets stay ignored during migration
 src/Project_1/data/

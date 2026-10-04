@@ -25,6 +25,7 @@ SIF 실제 사고사례를 검색해 유사사례와 예방대책을 출처와 �
 
 - `src/sif_rag/`: 데이터 수집·전처리·검색·평가 코드
 - `apps/streamlit/app.py`: Streamlit 시연 화면
+- `apps/accident_assistant/`: SIF/KOSHA 통합 Streamlit 앱과 앱 전용 서비스·의존성·테스트
 - `sql/`: PostgreSQL 및 pgvector 스키마
 - `scripts/`: 로컬 개발환경 설정 스크립트
 - `data/`: 로컬 데이터 위치. 승인되지 않은 원본·수집물·평가 산출물은 저장소에 포함하지 않습니다.
