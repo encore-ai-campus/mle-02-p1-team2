@@ -104,7 +104,14 @@ def search_sif_cases(
                     "risk_factor": _text(fields, "disasterFactor"),
                     "control_measure": _text(fields, "dcrsCntrplnCn"),
                 },
-                "citation": {"source_url": source_url.strip(), "validated": True},
+                "citation": {
+                    "source_url": source_url.strip(),
+                    "validation": {
+                        "http_scheme": True,
+                        "official_data_go_kr_host": True,
+                        "case_identity": "not_checked",
+                    },
+                },
             }
         )
 

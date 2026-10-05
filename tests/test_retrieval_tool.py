@@ -24,7 +24,8 @@ class SearchSifCasesTests(unittest.TestCase):
         result = search_sif_cases("forklift pedestrian collision", [case("SIF-1")])
         self.assertEqual(result["status"], "ok")
         self.assertEqual(result["results"][0]["case_id"], "SIF-1")
-        self.assertTrue(result["results"][0]["citation"]["validated"])
+        self.assertTrue(result["results"][0]["citation"]["validation"]["official_data_go_kr_host"])
+        self.assertEqual(result["results"][0]["citation"]["validation"]["case_identity"], "not_checked")
         self.assertEqual(result["results"][0]["evidence"]["risk_factor"], "pedestrian in route")
         self.assertFalse(result["retrieval"]["score_is_probability"])
 
