@@ -22,9 +22,22 @@ def evaluate(
     k: int = 5,
     expander: GlossaryExpander | None = None,
 ) -> dict[str, Any]:
-    labeled = [question for question in questions if question.get("expected_case_ids")]
-    if not labeled:
-        raise ValueError("평가할 라벨이 없습니다. 질문별 expected_case_ids에 관련 사례 ID를 기록하세요.")
+    if not questions:
+        raise ValueError("No evaluation questions were provided.")
+    unlabeled_count = sum(not question.get("expected_case_ids") for question in questions)
+    if unlabeled_count:
+        raise ValueError(
+            f"Refusing partial evaluation: {unlabeled_count} of {len(questions)} questions have no expected_case_ids."
+        )
+    non_gold_count = sum(
+        "status" in question and question.get("status") != "human_gold"
+        for question in questions
+    )
+    if non_gold_count:
+        raise ValueError(
+            f"Refusing evaluation: {non_gold_count} questions are not marked human_gold."
+        )
+    labeled = questions
 
     hits = 0
     reciprocal_ranks: list[float] = []
@@ -68,14 +81,17 @@ def main() -> None:
     parser.add_argument("--glossary", type=Path, default=DEFAULT_GLOSSARY)
     args = parser.parse_args()
     questions, documents = load_questions(args.questions), load_corpus(args.corpus)
-    if args.compare_expansion:
-        expander = GlossaryExpander.from_csv(args.glossary)
-        result = {
-            "baseline": evaluate(questions, documents, args.k),
-            "query_expansion": evaluate(questions, documents, args.k, expander),
-        }
-    else:
-        result = evaluate(questions, documents, args.k)
+    try:
+        if args.compare_expansion:
+            expander = GlossaryExpander.from_csv(args.glossary)
+            result = {
+                "baseline": evaluate(questions, documents, args.k),
+                "query_expansion": evaluate(questions, documents, args.k, expander),
+            }
+        else:
+            result = evaluate(questions, documents, args.k)
+    except ValueError as exc:
+        parser.error(str(exc))
     print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
