@@ -50,3 +50,21 @@ data/processed/*
 apps/accident_assistant/data/
 # Legacy path retained so existing local datasets stay ignored during migration
 src/Project_1/data/
+
+# Personal SANUP-P data and local validation artifacts (keep data out of Git)
+/data/personal/raw/
+/data/personal/interim/
+/data/personal/processed/
+/data/personal/corpus/
+/data/personal/evaluation/*
+!/data/personal/evaluation/README.md
+/data/personal/figures/
+/data/personal/reports/
+/tmp/
+.venv-cloud/
+
+# SANUP-P local-only data, vector DB, and temporary validation environments
+/data/personal/
+/chroma_db/
+/tmp/
+.venv-cloud/
