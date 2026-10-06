@@ -11,6 +11,7 @@ from typing import Any
 
 from .query_expansion import DEFAULT_GLOSSARY, GlossaryExpander
 from .search import bm25, load_corpus
+from .retrieval_tool import search_sif_cases
 
 
 def _value(fields: dict[str, Any], key: str) -> str:
@@ -227,6 +228,7 @@ def main() -> None:
     parser.add_argument("--glossary", type=Path, default=DEFAULT_GLOSSARY)
     parser.add_argument("--generate", action="store_true", help="검색 사례를 근거로 OpenAI 답변 생성")
     parser.add_argument("--model", help="생성 모델 (기본값: OPENAI_MODEL 또는 gpt-6-luna)")
+    parser.add_argument("--format", choices=("text", "json"), default="text", help="Output format")
     args = parser.parse_args()
     if not 1 <= args.k <= 5:
         parser.error("-k는 1~5 사이여야 합니다.")
@@ -237,7 +239,22 @@ def main() -> None:
         if not args.glossary.exists():
             parser.error(f"용어사전 파일이 없습니다: {args.glossary}")
         expander = GlossaryExpander.from_csv(args.glossary)
-    search_query = expander.expand(args.question)["expanded_query"] if expander else args.question
+    expansion = expander.expand(args.question) if expander else None
+    search_query = expansion["expanded_query"] if expansion else args.question
+    if args.format == "json":
+        if args.generate:
+            parser.error("--generate cannot be combined with --format json")
+        result = search_sif_cases(
+            str(search_query), corpus, industry=args.industry, top_k=args.k
+        )
+        result["query"] = args.question
+        if expansion:
+            result["query_expansion"] = {
+                "expanded_query": expansion["expanded_query"],
+                "added_terms": expansion["added_terms"],
+            }
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return
     results = bm25(str(search_query), corpus, k=args.k, industry=args.industry)
     if args.generate:
         try:

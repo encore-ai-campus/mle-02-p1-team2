@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .evaluate import load_questions
-from .search import bm25, load_corpus
+from .search import DEFAULT_CORPUS, bm25, load_corpus
 
 
 FIELDS = (
@@ -61,9 +61,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Export BM25 candidates for manual relevance review; does not assign labels."
     )
-    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/rag_questions.jsonl"))
-    parser.add_argument("--corpus", type=Path, default=Path("data/raw/sif_openapi_cases.jsonl"))
-    parser.add_argument("--output", type=Path, default=Path("data/evaluation/rag_candidate_review.csv"))
+    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/questions/rag_questions.jsonl"))
+    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    parser.add_argument("--output", type=Path, default=Path("data/evaluation/labels/rag_candidate_review.csv"))
     parser.add_argument("-k", type=int, default=10)
     args = parser.parse_args()
     if args.k < 1:

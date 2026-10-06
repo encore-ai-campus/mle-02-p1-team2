@@ -21,47 +21,6 @@ flowchart TD
     O --> T[선택: TBM 체크리스트 초안]
 ```
 
-## Project_1 통합 서비스 흐름
-
-`src/Project_1/`은 RAG 검색에 통계 화면을 결합한 Streamlit 앱이다. 현재 구현은 질문을 자동 분류하는 Router가 아니라, 사용자가 선택하는 두 개의 탭으로 기능을 제공한다.
-
-```mermaid
-flowchart TD
-    U[사용자] --> APP[Streamlit 앱<br/>src/Project_1/app.py]
-    APP --> TAB{화면 탭}
-    TAB -->|작업 안전 상담| Q[질문 및 대화 맥락]
-    Q --> SR[safety_rag.py<br/>analyze_work]
-    SR --> QA[질문 분석<br/>query_analysis.py]
-    QA --> SIF[SIF 사고사례 검색<br/>PostgreSQL + pgvector]
-    QA --> KG[KOSHA GUIDE 검색<br/>PostgreSQL + pgvector]
-    SR --> HIST[(PostgreSQL 대화 이력)]
-    SIF --> ANS[근거 제한형 답변·출처]
-    KG --> ANS
-    ANS --> APP
-    TAB -->|산업재해 현황| STAT[statistics.py<br/>필터·지표 계산]
-    STORE[statistics_storage.py<br/>통계 CSV 준비] --> STAT
-    STAT --> VIZ[visualization.py<br/>차트 생성]
-    STAT --> APP
-    VIZ --> APP
-```
-
-- `app.py`가 화면 탭, 통계 조건, 대화 세션, 사용자 입력과 결과 표시를 조정한다.
-- 안전 상담은 `safety_rag.py`의 `analyze_work()`에서 시작한다. 내부적으로 `query_analysis.py`가 작업 맥락을 분석하고, SIF 사고사례와 KOSHA GUIDE를 각기 검색해 근거 유형을 구분한 답변을 구성한다.
-- 통계 탭은 `statistics_storage.py`가 준비한 CSV를 `statistics.py`에서 읽고 조건별 KPI·비교·추세를 계산한다. `visualization.py`가 통계 차트를 만든다.
-- 통계 CSV, 사례 벡터 컬렉션, 대화 이력은 서로 다른 데이터 경로다.
-
-### 자동 질문 Router: 보류
-
-현재는 화면 탭으로 통계와 안전 상담 진입점이 분리되어 있고, 각 기능의 데이터 경로도 구분되어 있다. 자동 분기가 현재 사용자 흐름에 더 나은 경험을 준다는 근거가 부족하므로 Router 구현은 보류한다. 기존 MVP의 단일 사례 검색 설계와 Project_1의 통합 화면 흐름은 별도로 유지한다.
-
-다음 조건이 생기면 재검토한다.
-
-- 한 입력창에서 통계와 안전 상담 질문을 함께 받는 사용 흐름이 필요해진다.
-- 두 의도가 섞이거나 모호한 질문 사례와 정답 라우팅 기준을 확보한다.
-- 개발 질문 세트에서 분류 정확도와 오분류 시 처리 방법을 평가할 수 있다.
-
-조건이 확인되면 라우터의 범위와 평가 기준을 먼저 정한 뒤 구현 여부를 결정한다.
-
 ## 3. 핵심 데이터
 
 ### SIF 사례 자료
