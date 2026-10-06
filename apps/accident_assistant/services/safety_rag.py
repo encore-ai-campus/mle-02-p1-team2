@@ -22,6 +22,7 @@ from pgvector.psycopg import register_vector
 from pydantic import BaseModel, Field
 
 from services.query_analysis import WorkContext, analyze_query, meaningful_terms
+from services.sif_retrieval import KEYWORD_SQL, fuse_candidates, search_terms as sif_search_terms
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -426,57 +427,41 @@ class SafetyRAGService:
                 for source_id, content, metadata, distance in rows]
 
     def sif_keyword_search(self, vector: np.ndarray, terms: Sequence[str], k: int) -> list[Document]:
-        """처음 보는 장비·재료도 원문 단어가 들어 있는 사례를 벡터 후보에 섞는다."""
-        patterns = [f"%{term}%" for term in terms if len(term) >= 2]
-        if not patterns:
+        """사고 본문·의미 분류의 단어 일치를 희소성으로 점수화한다. 출처는 제외한다."""
+        terms = sif_search_terms(" ".join(terms))
+        if not terms:
             return []
         with psycopg.connect(DB_URL, connect_timeout=5) as conn:
             register_vector(conn)
-            rows = conn.execute("""SELECT source_id, content, metadata, embedding <=> %s AS distance
-                FROM rag_day1_documents
-                WHERE kind='sif_case' AND embedding_model=%s AND vector_dims(embedding)=%s
-                  AND (content ILIKE ANY(%s) OR metadata::text ILIKE ANY(%s))
-                ORDER BY distance LIMIT %s""",
-                (vector, EMBEDDING_MODEL, VECTOR_DIM, patterns, patterns, k)).fetchall()
-        return [Document(page_content=content, metadata={**metadata, "source_id": source_id, "distance": float(distance)})
-                for source_id, content, metadata, distance in rows]
+            rows = conn.execute(KEYWORD_SQL,
+                (EMBEDDING_MODEL, VECTOR_DIM, list(terms), vector, k)).fetchall()
+        return [Document(page_content=content, metadata={**metadata, "source_id": source_id,
+                         "distance": float(distance), "lexical_score": float(score),
+                         "matched_terms": matched_terms})
+                for source_id, content, metadata, distance, score, matched_terms in rows]
 
     def retrieve_sif(self, vector: np.ndarray, context: WorkContext) -> list[Document]:
         if not self.sif_count:
             return []
-        conditions = sif_conditions_for(context)
-        active = {}
-        # 특정 기인물 사례가 1~2건이어도 먼저 후보에 넣고 전체 검색으로 부족한 수를 보충한다.
-        attempts = [conditions, {"object": conditions["object"]}, {"cause": conditions["cause"]}]
-        for candidate in attempts:
-            if not any(candidate.values()):
-                continue
-            where, params = sif_where(candidate)
-            with psycopg.connect(DB_URL, connect_timeout=5) as conn:
-                count = conn.execute(f"SELECT count(*) FROM rag_day1_documents WHERE {where}", params).fetchone()[0]
-            if count:
-                active = candidate
-                break
-        pool = self.sif_search(vector, active, CANDIDATE_K) if active else self.sif_keyword_search(
-            vector, context.search_terms, CANDIDATE_K // 2
-        )
-        ids = {doc.metadata["source_id"] for doc in pool}
-        for doc in self.sif_search(vector, {}, CANDIDATE_K):
-            if doc.metadata["source_id"] not in ids:
-                pool.append(doc)
-                ids.add(doc.metadata["source_id"])
-        pool = pool[:CANDIDATE_K]
-        if len(pool) <= TOP_K:
-            return pool
+        # Equipment/hazard words contribute lexical relevance; they never gate
+        # candidates through the old fixed metadata rules. Keep both channels.
+        keyword = self.sif_keyword_search(vector, sif_search_terms(context.resolved_question), CANDIDATE_K)
+        semantic = self.sif_search(vector, {}, CANDIDATE_K)
+        pool = fuse_candidates(keyword, semantic)
+        if not pool:
+            return []
         try:
             candidates = "\n\n".join(
                 f"doc_id={doc.metadata['source_id']}\n기인물={doc.metadata.get('기인물', '')}\n"
+                f"업종={doc.metadata.get('중분류', '')} / {doc.metadata.get('소분류', '')}\n"
                 f"재해유발요인={doc.metadata.get('재해유발요인', '')}\n사례={doc.page_content[:1000]}"
                 for doc in pool
             )
             result = self.rerank_llm.invoke(RERANK_PROMPT.invoke({
-                "query": context.resolved_question, "equipment": context.equipment or "미지정",
-                "work_type": context.work_type or "미지정", "hazard": ", ".join(context.hazard) or "미지정",
+                "query": context.resolved_question,
+                "equipment": "현재 작업 원문의 명시적 대상만 판단 (고정 목록 미사용)",
+                "work_type": "현재 작업 원문 참조; 업종·작업이 다른 참고 사례와 구분",
+                "hazard": "현재 작업 원문의 사고유형·부정 표현을 함께 판단",
                 "candidates": candidates,
             }))
             expected = {doc.metadata["source_id"] for doc in pool}
@@ -491,7 +476,7 @@ class SafetyRAGService:
                     for row in ranked if row.score >= SIF_RELEVANCE_MIN][:TOP_K]
         except Exception:
             return [Document(page_content=doc.page_content,
-                             metadata={**doc.metadata, "rerank_reason": "LLM 재정렬 실패: 벡터 순위 사용"})
+                             metadata={**doc.metadata, "rerank_reason": "LLM 재정렬 실패: 키워드·벡터 통합 순위 사용"})
                     for doc in pool[:TOP_K]]
 
     def retrieve_kosha(self, vector: np.ndarray, context: WorkContext) -> list[Document]:
