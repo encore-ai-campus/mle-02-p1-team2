@@ -6,6 +6,7 @@ from preventra_ui import state
 from preventra_ui import views as original
 from preventra_ui.statistics_view import render_statistics_banner
 from preventra_ui_v2.actions import start_from_home, submit_home
+from preventra_ui_v2.presentation import for_display
 
 ROOT = Path(__file__).resolve().parent
 
@@ -15,8 +16,36 @@ def apply_style():
 
 
 def render_sidebar():
-    # Same database, callbacks, save retry and recent-conversation ordering.
-    original.render_sidebar()
+    # Presentation only: keep the same database, ordering and state callbacks.
+    with st.sidebar, st.container(key="preventra_sidebar"):
+        st.html('<div class="pv-brand">Preventra<span aria-hidden="true"> ◈</span></div>')
+        st.caption("SAFETY WORKSPACE")
+        st.button("새 대화", key="preventra_new_chat", on_click=state.new_chat,
+                  type="primary", width="stretch", icon=":material/edit_square:")
+        with st.container(key="pv2_recent_heading", horizontal=True,
+                          horizontal_alignment="distribute", vertical_alignment="center"):
+            st.markdown("### 최근 대화")
+            st.caption(str(len(st.session_state.preventra_recent)))
+        if st.session_state.preventra_history_notice:
+            st.warning(st.session_state.preventra_history_notice)
+            st.button("저장 다시 시도" if st.session_state.preventra_unsaved else "목록 새로고침",
+                      key="preventra_retry_save", on_click=state.retry_save, width="stretch",
+                      icon=":material/refresh:")
+        with st.container(key="pv2_recent_list", gap="small"):
+            if not st.session_state.preventra_recent:
+                st.html('<div class="pv2-history-empty"><strong>첫 질문을 기다리고 있어요</strong>'
+                        '<p>대화를 시작하면 이곳에서<br>언제든 이어갈 수 있습니다.</p></div>')
+            for conversation in st.session_state.preventra_recent:
+                selected = conversation.conversation_id == st.session_state.preventra_conversation_id
+                st.button(conversation.title, key=f"preventra_conversation_{conversation.conversation_id}",
+                          on_click=state.open_conversation, args=(conversation.conversation_id,),
+                          width="stretch", type="primary" if selected else "tertiary",
+                          icon=":material/chat_bubble_outline:",
+                          help=f"{conversation.title} · 최근 사용: {conversation.updated_at:%Y-%m-%d %H:%M %Z}")
+        with st.container(key="pv2_sidebar_footer"):
+            st.button("홈으로 돌아가기", key="preventra_sidebar_home", on_click=state.navigate,
+                      args=("홈",), type="tertiary", width="stretch", icon=":material/home:")
+            st.caption("이 작업공간의 대화 · 최근 50개")
 
 
 def render_header():
@@ -50,10 +79,10 @@ def render_home():
             if st.session_state.preventra_input_notice:
                 st.info(st.session_state.preventra_input_notice)
             with st.container(key="pv2_examples", horizontal=True, gap="small"):
-                for question in original.EXAMPLES:
-                    st.button(question, key=f"pv2_example_{question}", type="tertiary", on_click=start_from_home,
-                              args=(question,), icon=":material/north_east:", icon_position="right")
-            st.caption("새 대화로 시작합니다. 이전 질문은 사이드바의 최근 대화에서 이어가세요.")
+                icons = (":material/history:", ":material/checklist:", ":material/monitoring:")
+                for question, icon in zip(original.EXAMPLES, icons):
+                    st.button(question, key=f"pv2_example_{question}", type="secondary",
+                              on_click=start_from_home, args=(question,), icon=icon)
     with st.container(key="pv2_help", horizontal=True, gap="large"):
         with st.container(width=300):
             st.html('<div class="pv2-eyebrow">HOW WE HELP</div><h2 class="pv2-section-title">자료를 넘어,<br>작업의 맥락으로.</h2>')
@@ -91,7 +120,8 @@ def render_assistant():
             with st.chat_message("user"):
                 st.write(turn["request"].question)
             with st.chat_message("assistant"):
-                original.render_result(turn["result"], turn["request"].request_id)
+                original.render_result(for_display(turn["result"]), turn["request"].request_id,
+                                       show_references=False)
         if st.session_state.preventra_pending:
             with st.chat_message("user"):
                 st.write(st.session_state.preventra_pending["question"])
@@ -100,6 +130,16 @@ def render_assistant():
             st.rerun()
 
 
+def render_source_notice():
+    # Authored copy only; user and model text never enters custom HTML.
+    st.html('''<aside class="pv2-source-notice" aria-label="자료 활용 안내">
+        <div class="pv2-eyebrow">ABOUT THIS PROJECT</div>
+        <h3>더 나은 현장 판단을 위한 참고 자료</h3>
+        <p>Preventra는 가상 기업·교육 프로젝트입니다.<br>
+        제공 자료는 현장별 위험성평가와 담당자의 검토를 돕기 위한 참고 정보입니다.</p>
+        </aside>''')
+
+
 def render_sources():
     with st.container(key="pv2_sources"):
-        original.render_sources()
+        original.render_sources(show_record=False, footer_renderer=render_source_notice)

@@ -87,26 +87,26 @@ def render_source(item):
         st.link_button("원문 출처 열기", url)
 
 
-def render_cases(cases):
+def render_cases(cases, *, show_references=True):
     st.markdown("#### 관련 사고사례")
     for case in cases:
         with st.container(border=True):
-            st.write(f"[{case.reference}] {case.title}")
+            st.write(f"[{case.reference}] {case.title}" if show_references else case.title)
             st.write(case.excerpt[:500])
             with st.expander("사고사례 원문·출처 확인"):
                 st.write(case.excerpt)
                 render_source(case)
 
 
-def render_guides(guides):
+def render_guides(guides, *, show_references=True):
     st.markdown("#### 안전가이드 근거")
     for guide in guides:
-        with st.expander(f"[{guide.reference}] {guide.title}"):
+        with st.expander(f"[{guide.reference}] {guide.title}" if show_references else guide.title):
             st.write(guide.excerpt)
             render_source(guide)
 
 
-def render_result(result: AssistantResult, request_id=""):
+def render_result(result: AssistantResult, request_id="", *, show_references=True):
     if result.status == "not_connected":
         st.caption("질문 전달 완료 · 답변 기능 연결 준비 중")
         return
@@ -116,9 +116,9 @@ def render_result(result: AssistantResult, request_id=""):
     if result.answer:
         st.write(result.answer)
     if result.cases:
-        render_cases(result.cases)
+        render_cases(result.cases, show_references=show_references)
     if result.guides:
-        render_guides(result.guides)
+        render_guides(result.guides, show_references=show_references)
     if result.figures:
         st.markdown("#### 관련 통계")
         for index, figure in enumerate(result.figures):
@@ -154,7 +154,7 @@ def render_assistant():
         st.rerun()
 
 
-def render_sources():
+def render_sources(*, show_record=True, footer_renderer=None):
     st.html('<div class="pv-eyebrow">Data & Sources</div>')
     st.title("데이터·출처")
     st.write("프로젝트에서 확인한 자료의 범위와 한계를 함께 안내합니다.")
@@ -181,5 +181,9 @@ def render_sources():
         for column, (label, identifier) in zip(st.columns(4), links):
             column.link_button(label, f"https://www.data.go.kr/data/{identifier}/fileData.do", width="stretch")
         st.caption("공공데이터포털 링크는 저장소 출처 문서에 기록된 원자료 안내입니다. 과거 연도 자료는 프로젝트의 history CSV 기준이며, 이 화면에서 원자료의 최신 여부를 재검증하지는 않습니다.")
-    st.caption("근거 기록: Project_1/README.md · Day13_검색품질_점검.md · data/kosha_guide 수집 목록 · services/statistics.py · 저장소 docs/data-sources.md")
-    st.info("Preventra는 가상 기업·교육 프로젝트입니다. 제공 자료는 현장별 위험성평가와 담당자의 검토를 돕기 위한 참고 정보입니다.")
+    if show_record:
+        st.caption("근거 기록: Project_1/README.md · Day13_검색품질_점검.md · data/kosha_guide 수집 목록 · services/statistics.py · 저장소 docs/data-sources.md")
+    if footer_renderer is not None:
+        footer_renderer()
+    else:
+        st.info("Preventra는 가상 기업·교육 프로젝트입니다. 제공 자료는 현장별 위험성평가와 담당자의 검토를 돕기 위한 참고 정보입니다.")
