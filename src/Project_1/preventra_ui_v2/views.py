@@ -57,7 +57,7 @@ def render_header():
                           help="현재 화면" if st.session_state.preventra_page == page else None)
 
 
-def render_home():
+def render_home(*, show_statistics=True, after_hero=None):
     with st.container(key="pv2_hero", horizontal=True, gap="large", vertical_alignment="center"):
         with st.container(width=500, key="pv2_message"):
             st.html('''<section class="pv2-hero-copy">
@@ -83,6 +83,8 @@ def render_home():
                 for question, icon in zip(original.EXAMPLES, icons):
                     st.button(question, key=f"pv2_example_{question}", type="secondary",
                               on_click=start_from_home, args=(question,), icon=icon)
+    if after_hero:
+        after_hero()
     with st.container(key="pv2_help", horizontal=True, gap="large"):
         with st.container(width=300):
             st.html('<div class="pv2-eyebrow">HOW WE HELP</div><h2 class="pv2-section-title">자료를 넘어,<br>작업의 맥락으로.</h2>')
@@ -94,15 +96,16 @@ def render_home():
             ):
                 # All strings in this HTML are authored constants, never model/user data.
                 st.html(f'<article class="pv2-service-row"><span>{number}</span><div><h3>{title}</h3><p>{body}</p></div></article>')
-    with st.container(key="pv2_statistics"):
-        render_statistics_banner()
+    if show_statistics:
+        with st.container(key="pv2_statistics"):
+            render_statistics_banner()
     st.html('''<footer class="pv2-principles"><div class="pv2-eyebrow">Our Principles</div>
       <h3>근거를 확인하고, 맥락을 이해하고, 예방으로 연결합니다.</h3>
       <p>Preventra는 출처를 확인할 수 있는 정보와 읽기 쉬운 데이터로 현장의 판단을 돕고자 합니다.</p>
       <p>Preventra는 산업안전 정보 활용을 위한 가상 기업·교육 프로젝트입니다.</p></footer>''')
 
 
-def render_assistant():
+def render_assistant(*, consume=None, turn_context_renderer=None):
     with st.container(key="pv2_chat"):
         with st.container(key="pv2_chat_heading"):
             st.markdown("### Preventra Safety Assistant")
@@ -122,11 +125,13 @@ def render_assistant():
             with st.chat_message("assistant"):
                 original.render_result(for_display(turn["result"]), turn["request"].request_id,
                                        show_references=False)
+                if turn_context_renderer:
+                    turn_context_renderer(turn)
         if st.session_state.preventra_pending:
             with st.chat_message("user"):
                 st.write(st.session_state.preventra_pending["question"])
             with st.spinner("질문을 확인하고 필요한 자료를 찾고 있습니다…"):
-                state.consume_pending()
+                (consume or state.consume_pending)()
             st.rerun()
 
 

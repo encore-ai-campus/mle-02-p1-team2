@@ -200,8 +200,10 @@ def load_stat_csv(metric: str, year: int, path: Path | BytesIO) -> pd.DataFrame:
         wide[column] = wide[column].astype(str).str.strip()
         if wide[column].eq("").any():
             raise ValueError(f"산업 구분 값이 비어 있습니다: {path}")
-    if len(wide) != 30 or wide["산업중분류"].nunique() != 30:
-        raise ValueError(f"산업중분류 30개 행 또는 중복 여부를 확인해 주세요: {path}")
+    # Historical classifications vary: the 2020 fatality-rate CSV has 37 rows.
+    # Validate structural integrity without discarding a valid historical taxonomy.
+    if wide.empty or wide["산업중분류"].duplicated().any():
+        raise ValueError(f"산업중분류 행이 비어 있거나 중복되었습니다: {path}")
 
     missing_values = {"", "-", "—", "–", "자료 없음", "자료없음", "N/A", "NA"}
     for column in SIZE_ORDER:

@@ -7,8 +7,8 @@ from preventra_ui.gateway import AssistantResult
 # Match only Preventra citation tokens, including escaped Markdown brackets.
 # Other bracketed text (measurements, links, labels) must remain readable.
 _CITATIONS = re.compile(
-    r"[ \t]*\\?\[(?:SIF|GUIDE|STATS)-\d+"
-    r"(?:[ \t]*[,;·][ \t]*(?:SIF|GUIDE|STATS)-\d+)*\\?\]"
+    r"[ \t]*\\?\[(?:SIF|GUIDE|STATS|PLAN)-\d+"
+    r"(?:[ \t]*[,;·][ \t]*(?:SIF|GUIDE|STATS|PLAN)-\d+)*\\?\]"
 )
 
 
