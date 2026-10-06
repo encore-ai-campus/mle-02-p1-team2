@@ -3,6 +3,7 @@ import streamlit as st
 from preventra_ui import state
 from preventra_ui_v2 import views
 from preventra_plan import ui
+from preventra_plan.report import render_manager_dashboard
 
 
 def main():
@@ -17,6 +18,9 @@ def main():
         page = st.session_state.preventra_page
         if page == "홈":
             ui.render_home()
+        elif page == "관리자 대시보드":
+            with st.container(key="plus_dashboard"):
+                render_manager_dashboard()
         elif page == "안전 어시스턴트":
             manager = ui.is_manager()
             if manager:
@@ -28,7 +32,7 @@ def main():
                 examples=() if manager else None)
         else:
             views.render_sources()
-    if page == "안전 어시스턴트":
+    if page in ("안전 어시스턴트", "관리자 대시보드"):
         st.chat_input("작업 상황이나 이어서 궁금한 점을 입력해 주세요", key="preventra_chat_question",
                       on_submit=ui.submit_chat, max_chars=4000, disabled=ui.blocked())
 

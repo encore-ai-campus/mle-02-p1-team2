@@ -77,12 +77,25 @@ def render_home():
     with manager:
         if manager.open:
             with st.container(key='plus_manager_home'):
-                st.markdown('## 작업계획을 연결하고, 이어서 확인하세요.')
-                st.write('날짜별 작업과 계획된 안전조치를 살펴보고, 필요한 주의점을 질문할 수 있습니다.')
-                render_plan()
                 if st.session_state.plus_saved.snapshot:
-                    st.button('연결된 계획서로 이어서 질문', key='plus_resume',
+                    st.html('''<section class="plus-upload-hero">
+                      <div class="plus-report-overline">MANAGER WORKSPACE</div>
+                      <h1>현장 브리핑이<br><span>준비되어 있습니다.</span></h1>
+                      <p>선택한 날짜의 날씨와 작업별 확인사항, 산업재해 통계를 한눈에 살펴보세요.</p>
+                      </section>''')
+                    st.button("관리자 브리핑 열기", key="plus_open_dashboard", type="primary",
+                              on_click=state.navigate, args=("관리자 대시보드",), width="stretch")
+                    with st.expander("작업계획서 바꾸기", expanded=False):
+                        render_plan()
+                    st.button('계획서에 대해 질문하기', key='plus_resume',
                               on_click=state.navigate, args=('안전 어시스턴트',), disabled=blocked())
+                else:
+                    st.html('''<section class="plus-upload-hero">
+                      <div class="plus-report-overline">PREVENTRA · FIELD SAFETY</div>
+                      <h1>오늘의 작업을,<br><span>더 안전하게 준비하세요.</span></h1>
+                      <p>작업계획서를 올리면 현장 날씨와 계절별 점검사항,<br>산업재해 데이터가 한눈에 보이는 브리핑으로 정리됩니다.</p>
+                      </section>''')
+                    render_plan()
 
 
 def submit_chat():
@@ -129,7 +142,9 @@ def apply_candidate():
         st.session_state.plus_candidate = None
         st.session_state.plus_candidate_token = None
         st.session_state.plus_upload_generation += 1
-        state.navigate("안전 어시스턴트")
+        state.navigate("관리자 대시보드" if st.session_state.get("preventra_page") in ("홈", "관리자 대시보드")
+                       and st.session_state.get("plus_home_role") == "관리자"
+                       else "안전 어시스턴트")
         st.rerun()
 
 

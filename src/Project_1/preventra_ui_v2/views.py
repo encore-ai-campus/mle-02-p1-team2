@@ -52,7 +52,8 @@ def render_header():
     with st.container(key="pv2_header", horizontal=True, horizontal_alignment="distribute", vertical_alignment="center"):
         st.html('<div class="pv2-brand">Preventra<span aria-hidden="true"> ◈</span></div>')
         with st.container(key="pv2_menu", horizontal=True, width="content", gap="medium"):
-            for page in ("홈", "데이터·출처"):
+            pages = ("홈", "관리자 대시보드", "데이터·출처") if st.session_state.get("plus_saved") and st.session_state.plus_saved.snapshot else ("홈", "데이터·출처")
+            for page in pages:
                 st.button(page, key=f"pv2_nav_{page}", type="tertiary", on_click=state.navigate, args=(page,),
                           help="현재 화면" if st.session_state.preventra_page == page else None)
 

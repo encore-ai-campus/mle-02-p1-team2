@@ -30,7 +30,7 @@ def refresh_recent():
 
 
 def navigate(page):
-    if page not in PAGES:
+    if page not in PAGES and page != "관리자 대시보드":
         raise ValueError("Unknown Preventra page")
     st.session_state.preventra_page = page
 
