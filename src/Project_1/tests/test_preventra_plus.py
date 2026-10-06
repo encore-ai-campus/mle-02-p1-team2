@@ -1,12 +1,15 @@
 """Plan parsing, request isolation, citation and real Streamlit lifecycle checks."""
 from copy import deepcopy
-from datetime import date, timedelta
+from datetime import date, timedelta, time
+from dataclasses import replace
 from io import BytesIO
 from pathlib import Path
 import unittest
 from unittest.mock import patch, Mock
 from openpyxl import Workbook
 from streamlit.testing.v1 import AppTest
+from streamlit.testing.v1.element_tree import get_widget_state
+from streamlit.proto.WidgetStates_pb2 import WidgetState
 
 from preventra_plan import domain
 from preventra_plan.agent import PlanTools, dispatch
@@ -19,6 +22,15 @@ from preventra_fakes import MemoryStore
 from test_preventra_agent import Model, call, final
 
 ENTRY = Path(__file__).resolve().parents[1] / 'preventra_plus.py'
+
+
+def browser_widget_state(node):
+    # Streamlit 1.64 AppTest omits stateful tab blocks from browser events.
+    # Supply the same string_value the real browser sends, leaving other widgets intact.
+    if node.type == 'tab_container' and node.proto.tab_container.id:
+        identifier=node.proto.tab_container.id
+        return WidgetState(id=identifier, string_value=node.root.session_state[identifier])
+    return get_widget_state(node)
 
 
 def workbook_bytes(extra=False):
@@ -95,7 +107,7 @@ class PlanDomainTests(unittest.TestCase):
 
     def test_plan_citation_and_gateway_preserve_separate_sources(self):
         backend = PlanTools(context())
-        model = Model(call('get_work_plan', {'day': None, 'work_id': 'A'}),
+        model = Model(call('get_work_plan', {'day': None, 'work_id': 'A', 'period': None}),
                       final('계획에는 통로 구분이 적혀 있습니다. [PLAN-1]', ['PLAN-1']))
         request = AssistantRequest('req', 'session', '오늘 작업', context=context())
         with patch('preventra_plan.agent.SafetyAgent', return_value=SafetyAgent(model, backend)), \
@@ -117,18 +129,54 @@ class PlanDomainTests(unittest.TestCase):
         self.assertEqual(result.answer, '기존')
         original.assert_called_once()
 
+    def test_relative_days_follow_selected_plan_date_and_explicit_date_wins(self):
+        plan = domain.read_work_plan(workbook_bytes())
+        day = domain.today_korea() + timedelta(days=6)
+        plan = replace(plan, items=tuple(replace(i, day=day) for i in plan.items))
+        backend = PlanTools({'work_plan': domain.snapshot(plan, day, 'A')})
+        self.assertEqual(backend.plan_result('today', None, 'morning').data['day'], day.isoformat())
+        self.assertEqual(backend.plan_result(None, None).data['work_count'], 1)
+        self.assertEqual(backend.plan_result(None, '*').data['work_count'], 2)
+        self.assertEqual(backend.plan_result('tomorrow', None).data['day'], (day + timedelta(days=1)).isoformat())
+        self.assertEqual(backend.plan_result('calendar_today', None).status, 'empty')
+        self.assertEqual(backend.plan_result(domain.today_korea().isoformat(), None).status, 'empty')
+
+    def test_morning_and_afternoon_include_only_overlapping_work(self):
+        plan = domain.read_work_plan(workbook_bytes())
+        items = (replace(plan.items[0], start=time(8), end=time(12)),
+                 replace(plan.items[1], start=time(12), end=time(17)),
+                 replace(plan.items[1], work_id='C', start=time(11), end=time(13)))
+        backend = PlanTools({'work_plan': domain.snapshot(replace(plan, items=items), domain.today_korea())})
+        self.assertEqual([r['work_id'] for r in backend.plan_result(None, '*', 'morning').data['items']], ['A', 'C'])
+        self.assertEqual([r['work_id'] for r in backend.plan_result(None, '*', 'afternoon').data['items']], ['B', 'C'])
+
+    def test_selected_date_prompt_and_followup_history_reach_model(self):
+        from preventra_ui.gateway import ConversationTurn
+        ctx=context()
+        ctx['work_plan']['day']='2026-10-12'
+        req=AssistantRequest('r', 's', '그중 지게차 작업은?',
+                             history=(ConversationTurn('오늘 오전 작업', '지게차와 자재 정리 작업입니다.'),), context=ctx)
+        with patch('preventra_plan.agent.SafetyAgent') as factory, \
+             patch('preventra_ui.gateway.dispatch') as gateway:
+            dispatch(req)
+        self.assertIn('계획 기준일은 2026-10-12', factory.call_args.kwargs['system_prompt'])
+        self.assertIs(gateway.call_args.args[0], req)
+
 
 class PlusUITests(unittest.TestCase):
     def setUp(self):
         self.store, self.plans = MemoryStore(), MemoryPlans()
+        patch('streamlit.testing.v1.element_tree.get_widget_state', side_effect=browser_widget_state).start()
         patch('preventra_ui.state.get_store', return_value=self.store).start()
         patch('preventra_plan.ui.get_plan_store', return_value=self.plans).start()
         self.dispatch = patch('preventra_plan.agent.dispatch', return_value=AssistantResult(answer='검증 답변')).start()
         self.stats = patch('preventra_ui.statistics_view.get_statistics', side_effect=AssertionError('home must not load stats')).start()
         self.addCleanup(patch.stopall)
 
-    def app(self):
-        app = AppTest.from_file(str(ENTRY), default_timeout=20).run()
+    def app(self, role='작업자'):
+        app = AppTest.from_file(str(ENTRY), default_timeout=20)
+        app.session_state['plus_home_tabs'] = role
+        app.run()
         self.assertFalse(app.exception)
         return app
 
@@ -137,13 +185,15 @@ class PlusUITests(unittest.TestCase):
         self.assertFalse(app.exception)
 
     def apply(self, app, plan=None):
+        if app.session_state['preventra_page'] == '홈':
+            app.session_state['plus_home_tabs'] = '관리자'
         app.session_state['plus_candidate'] = plan or domain.read_work_plan(workbook_bytes())
         app.run()
         self.click(app, 'plus_apply')
 
     def test_home_is_simple_and_actual_upload_preview_requires_apply(self):
         with patch('streamlit.file_uploader', return_value=BytesIO(workbook_bytes())):
-            app = self.app()
+            app = self.app('관리자')
         self.assertIsNotNone(app.session_state['plus_candidate'])
         self.assertEqual(len(self.store.rows), 0)
         self.assertEqual(len(app.metric), 0)
@@ -235,6 +285,63 @@ class PlusUITests(unittest.TestCase):
         self.apply(app)
         self.assertEqual(self.plans.load(identifier).revision, 2)
         self.assertIsNone(self.plans.load(identifier).snapshot)
+
+    def test_worker_home_and_new_chat_have_no_plan_uploader(self):
+        app = self.app()
+        self.assertEqual([tab.label for tab in app.tabs], ['작업자', '관리자'])
+        self.assertEqual(len(app.get('file_uploader')), 0)
+        self.apply(app)
+        self.click(app, 'preventra_new_chat')
+        self.assertEqual(len(app.get('file_uploader')), 0)
+        app.chat_input[0].set_value('지게차 사고사례 알려줘').run()
+        self.assertEqual(self.dispatch.call_args.args[0].context, {})
+
+    def test_followups_keep_selected_date_work_and_history_after_restore(self):
+        app = self.app()
+        plan = domain.read_work_plan(workbook_bytes())
+        future = domain.today_korea() + timedelta(days=6)
+        plan = replace(plan, items=tuple(replace(i, day=future) for i in plan.items))
+        self.apply(app, plan)
+        identifier=app.session_state['preventra_conversation_id']
+        app.date_input('plus_day').set_value(future).run()
+        app.selectbox('plus_work').set_value('A').run()
+        questions=['오늘 오전 작업에서 주의사항 알려줘', '그 작업의 계획된 안전조치는?', '이 작업과 비슷한 사고는?']
+        for index, question in enumerate(questions):
+            app.chat_input[0].set_value(question).run()
+            self.assertFalse(app.exception)
+            request=self.dispatch.call_args.args[0]
+            self.assertEqual(request.context['work_plan']['day'], future.isoformat())
+            self.assertEqual(request.context['work_plan']['work_id'], 'A')
+            self.assertEqual([turn.question for turn in request.history], questions[:index])
+        self.assertEqual(self.dispatch.call_count, 3)
+        self.click(app, 'preventra_new_chat')
+        self.click(app, 'preventra_conversation_' + identifier)
+        self.assertEqual(app.date_input('plus_day').value, future)
+        self.assertEqual(app.selectbox('plus_work').value, 'A')
+        app.chat_input[0].set_value('앞에서 말한 내용 더 짧게 정리해 줘').run()
+        self.assertEqual(len(self.dispatch.call_args.args[0].history), 3)
+
+    def test_home_tab_switch_keeps_manager_selection_and_worker_starts_clean(self):
+        app=self.app()
+        self.apply(app)
+        app.selectbox('plus_work').set_value('A').run()
+        identifier=app.session_state['preventra_conversation_id']
+        self.click(app, 'preventra_sidebar_home')
+        app.session_state['plus_home_tabs']='작업자'
+        app.run()
+        self.assertEqual(len(app.get('file_uploader')), 0)
+        app.session_state['plus_home_tabs']='관리자'
+        app.run()
+        self.assertEqual(app.selectbox('plus_work').value, 'A')
+        self.assertEqual(app.session_state['preventra_conversation_id'], identifier)
+        self.click(app,'plus_resume')
+        self.assertEqual(app.selectbox('plus_work').value,'A')
+        self.click(app, 'preventra_sidebar_home')
+        app.session_state['plus_home_tabs']='작업자'
+        app.run()
+        self.click(app,'pv2_example_지게차 사고사례')
+        self.assertNotEqual(app.session_state['preventra_conversation_id'],identifier)
+        self.assertEqual(self.dispatch.call_args.args[0].context,{})
 
 
 if __name__ == '__main__':
