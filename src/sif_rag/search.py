@@ -12,7 +12,6 @@ from typing import Any
 
 
 TOKEN_RE = re.compile(r"[가-힣]+|[A-Za-z]+|\d+")
-DEFAULT_CORPUS = Path(__file__).resolve().parents[2] / "data" / "processed" / "sif_rag_documents.jsonl"
 
 
 def tokenize(text: str) -> list[str]:
@@ -79,7 +78,7 @@ def bm25(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Collected SIF case lexical retrieval baseline")
     parser.add_argument("question", help="검색 질문")
-    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    parser.add_argument("--corpus", type=Path, default=Path("data/raw/sif_openapi_cases.jsonl"))
     parser.add_argument("--industry", help="업종 또는 작업 분류 필터(부분 일치)")
     parser.add_argument("-k", type=int, default=5)
     args = parser.parse_args()

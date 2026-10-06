@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .query_expansion import DEFAULT_GLOSSARY, GlossaryExpander
-from .search import DEFAULT_CORPUS, bm25, load_corpus
+from .search import bm25, load_corpus
 
 
 def _value(fields: dict[str, Any], key: str) -> str:
@@ -218,11 +218,10 @@ def main() -> None:
     parser.add_argument(
         "--corpus",
         type=Path,
-        default=DEFAULT_CORPUS,
+        default=Path("data/processed/sif_rag_documents.jsonl"),
         help="사례 단위 RAG 문서 JSONL",
     )
     parser.add_argument("--industry", help="업종 조건(예: 건설, 제조); API 원본 중분류/대분류에 부분 일치")
-    parser.add_argument("--retriever", choices=("bm25", "vector"), default="bm25", help="retrieval backend")
     parser.add_argument("-k", type=int, default=3, help="표시할 사례 수(1~5)")
     parser.add_argument("--expand-query", action="store_true", help="용어사전 기반 질의 확장")
     parser.add_argument("--glossary", type=Path, default=DEFAULT_GLOSSARY)
@@ -232,34 +231,21 @@ def main() -> None:
     if not 1 <= args.k <= 5:
         parser.error("-k는 1~5 사이여야 합니다.")
 
+    corpus = load_corpus(args.corpus)
     expander = None
     if args.expand_query:
         if not args.glossary.exists():
-            parser.error(f"Glossary file does not exist: {args.glossary}")
+            parser.error(f"용어사전 파일이 없습니다: {args.glossary}")
         expander = GlossaryExpander.from_csv(args.glossary)
-    expansion = expander.expand(args.question) if expander else None
-    search_query = str(expansion["expanded_query"]) if expansion else args.question
-    if args.retriever == "vector":
-        from .vector_store import vector_search
-        results = vector_search(search_query, k=args.k, industry=args.industry)
-    else:
-        results = bm25(search_query, load_corpus(args.corpus), k=args.k, industry=args.industry)
-    score_label = "BM25" if args.retriever == "bm25" else "\ucf54\uc0ac\uc778 \uc720\uc0ac\ub3c4"
+    search_query = expander.expand(args.question)["expanded_query"] if expander else args.question
+    results = bm25(str(search_query), corpus, k=args.k, industry=args.industry)
     if args.generate:
         try:
             print(generate_grounded_answer(args.question, results, model=args.model))
         except Exception as exc:
             parser.exit(1, f"답변 생성 실패: {exc}\n")
     else:
-        print(
-            format_answer(
-                args.question,
-                results,
-                expanded_query=search_query if expansion else None,
-                added_terms=list(expansion["added_terms"]) if expansion else None,
-                score_label=score_label,
-            )
-        )
+        print(answer_query(args.question, corpus, k=args.k, industry=args.industry, expander=expander))
 
 
 if __name__ == "__main__":

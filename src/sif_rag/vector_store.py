@@ -18,7 +18,6 @@ from pgvector.psycopg import register_vector
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_CORPUS = ROOT / "data" / "processed" / "sif_rag_documents.jsonl"
 DEFAULT_MODEL = "text-embedding-3-small"
-VECTOR_DIMENSIONS = {"text-embedding-3-small": 1536}
 SOURCE_NAME = "한국산업안전보건공단 SIF 조회 API (15161362)"
 
 
@@ -37,14 +36,6 @@ def load_config() -> dict[str, str]:
     return config
 
 
-def validate_embedding_model(model: str) -> None:
-    if model not in VECTOR_DIMENSIONS:
-        raise ValueError(
-            f"Unsupported embedding model for the current vector(1536) schema: {model}. "
-            "Only text-embedding-3-small with 1536 dimensions is supported."
-        )
-
-
 def embed_texts(texts: list[str], model: str) -> list[list[float]]:
     try:
         from openai import OpenAI
@@ -60,13 +51,7 @@ def embed_texts(texts: list[str], model: str) -> list[list[float]]:
         input=[text.replace("\n", " ") for text in texts],
     )
     ordered = sorted(response.data, key=lambda item: item.index)
-    vectors = [item.embedding for item in ordered]
-    expected_dimensions = VECTOR_DIMENSIONS.get(model)
-    if expected_dimensions is not None and any(len(vector) != expected_dimensions for vector in vectors):
-        raise RuntimeError(
-            f"Embedding response dimension does not match the PostgreSQL vector({expected_dimensions}) schema."
-        )
-    return vectors
+    return [item.embedding for item in ordered]
 
 
 def get_embedding_model() -> str:
@@ -128,7 +113,6 @@ def ingest_documents(
     model: str = DEFAULT_MODEL,
     force: bool = False,
 ) -> tuple[int, int]:
-    validate_embedding_model(model)
     if batch_size < 1 or batch_size > 100:
         raise ValueError("batch_size는 1~100이어야 합니다.")
     documents = load_documents(path, limit)
@@ -203,7 +187,6 @@ def vector_search(
     model: str | None = None,
 ) -> list[tuple[float, dict[str, Any]]]:
     model = model or get_embedding_model()
-    validate_embedding_model(model)
     with connect_database() as conn:
         has_vectors = conn.execute(
             "SELECT EXISTS (SELECT 1 FROM sif_cases WHERE embedding_model = %s)", (model,)

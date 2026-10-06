@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .query_expansion import DEFAULT_GLOSSARY, GlossaryExpander
-from .search import DEFAULT_CORPUS, TOKEN_RE, bm25, load_corpus
+from .search import TOKEN_RE, bm25, load_corpus
 
 
 STOPWORDS = {
@@ -73,11 +73,7 @@ def build_pool(questions: list[dict[str, Any]], corpus: list[dict[str, Any]], gl
                     "focused_query": variants["focused"],
                     "industry_filter": question.get("industry_filter") or "",
                     "case_id": document["case_id"],
-                    "pool_depth": k,
                     "relevance_label": "",
-                    "reviewer": "",
-                    "review_status": "candidate",
-                    "evidence_reference": document.get("source_url", ""),
                     "review_notes": "",
                 })
                 row[f"{variant}_rank"] = rank
@@ -93,10 +89,10 @@ def build_pool(questions: list[dict[str, Any]], corpus: list[dict[str, Any]], gl
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare a pooled candidate set for raw, focused, and glossary BM25 queries")
-    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/questions/rag_questions_100.jsonl"))
-    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/rag_questions_100.jsonl"))
+    parser.add_argument("--corpus", type=Path, default=Path("data/raw/sif_openapi_cases.jsonl"))
     parser.add_argument("--glossary", type=Path, default=DEFAULT_GLOSSARY)
-    parser.add_argument("--output", type=Path, default=Path("data/evaluation/labels/rag_query_ablation_pilot_10q.csv"))
+    parser.add_argument("--output", type=Path, default=Path("data/evaluation/rag_query_ablation_pilot_10q.csv"))
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("-k", type=int, default=3)
     args = parser.parse_args()
@@ -104,7 +100,7 @@ def main() -> None:
     corpus = load_corpus(args.corpus)
     glossary = GlossaryExpander.from_csv(args.glossary)
     rows, counts = build_pool(questions, corpus, glossary, args.k)
-    columns = ["question_id", "question", "focused_query", "industry_filter", "case_id", "pool_depth", "raw_rank", "raw_score", "focused_rank", "focused_score", "glossary_rank", "glossary_score", "relevance_label", "reviewer", "review_status", "evidence_reference", "review_notes", "incident_overview", "object_text", "high_risk_work", "precursor", "control_measure", "source_url"]
+    columns = ["question_id", "question", "focused_query", "industry_filter", "case_id", "raw_rank", "raw_score", "focused_rank", "focused_score", "glossary_rank", "glossary_score", "relevance_label", "review_notes", "incident_overview", "object_text", "high_risk_work", "precursor", "control_measure", "source_url"]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8-sig", newline="") as target:
         writer = csv.DictWriter(target, fieldnames=columns)
