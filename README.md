@@ -218,8 +218,16 @@ python -m src.sif_rag.rag_cli "건설 현장의 추락 위험은?" --industry �
 
 Before reporting retrieval metrics, confirm every question is explicitly marked `human_gold`, has non-empty `expected_case_ids`, and names a reviewer. Optional candidate-review CSVs must use the explicit `human_relevance_label` field, include reviewer and rationale, and have a traceable `data.go.kr` source URL. Generic `relevance_label` fields and assistant/automated reviewer identities do not count as human gold. `uncertain` labels are counted separately and should remain available for sensitivity reporting.
 
+Prepare a fresh blank human-review file from a candidate CSV. The command preserves candidate context and source links but clears prior machine or human labels, notes, and reviewer identities:
+
 ```powershell
-python -m src.sif_rag.audit_eval_readiness --questions data/evaluation/rag_query_ablation_100q_revisions20_questions.jsonl --candidate-review data/evaluation/rag_query_ablation_revisions20_top3_assistant_review.csv
+python -m src.sif_rag.prepare_eval_review_template --input data/evaluation/rag_query_ablation_revisions20_top3_assistant_review.csv --output data/evaluation/rag_query_ablation_revisions20_top3_human_review.csv
+```
+
+After independent review, run the readiness audit:
+
+```powershell
+python -m src.sif_rag.audit_eval_readiness --questions data/evaluation/rag_query_ablation_100q_revisions20_questions.jsonl --candidate-review data/evaluation/rag_query_ablation_revisions20_top3_human_review.csv
 ```
 
 The command emits aggregate counts, input SHA-256 fingerprints, and `PASS` or `HOLD`; it does not print question or case content. Exit code `2` means the evaluation inputs are on hold. The retrieval evaluator also refuses partial label sets, duplicate question or expected case IDs, invalid `expected_case_ids`, and `human_gold` rows without a named non-automated reviewer. Legacy fully labeled question files without a `status` field remain supported.
