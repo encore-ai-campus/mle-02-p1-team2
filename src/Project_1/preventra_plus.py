@@ -16,12 +16,16 @@ def main():
         views.render_header()
         page = st.session_state.preventra_page
         if page == "홈":
-            views.render_home(show_statistics=False, after_hero=ui.render_plan)
+            ui.render_home()
         elif page == "안전 어시스턴트":
-            ui.render_plan()
+            manager = ui.is_manager()
+            if manager:
+                ui.render_plan()
             views.render_assistant(
                 consume=ui.consume_pending,
-                turn_context_renderer=ui.render_turn_context)
+                turn_context_renderer=ui.render_turn_context,
+                title='관리자 · 작업계획 상담' if manager else '작업자 · 안전 상담',
+                examples=() if manager else None)
         else:
             views.render_sources()
     if page == "안전 어시스턴트":

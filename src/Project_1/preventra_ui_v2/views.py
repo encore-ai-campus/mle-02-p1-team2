@@ -105,18 +105,20 @@ def render_home(*, show_statistics=True, after_hero=None):
       <p>Preventra는 산업안전 정보 활용을 위한 가상 기업·교육 프로젝트입니다.</p></footer>''')
 
 
-def render_assistant(*, consume=None, turn_context_renderer=None):
+def render_assistant(*, consume=None, turn_context_renderer=None,
+                     title="Preventra Safety Assistant", examples=None):
     with st.container(key="pv2_chat"):
         with st.container(key="pv2_chat_heading"):
-            st.markdown("### Preventra Safety Assistant")
+            st.markdown("### " + title)
             st.caption("작업의 맥락을 이어가고, 답변에 사용된 근거를 확인하세요.")
         if st.session_state.preventra_input_notice:
             st.info(st.session_state.preventra_input_notice)
         if not st.session_state.preventra_turns and not st.session_state.preventra_pending:
             with st.container(key="pv2_empty"):
                 st.markdown("## 오늘의 작업을 함께 살펴볼까요?")
-                st.write("작업명, 사용하는 장비, 궁금한 점을 알려주세요.")
-                for question in original.EXAMPLES[:2]:
+                st.write("위에서 계획 기준일과 작업을 고른 뒤 아래에 질문해 주세요." if examples == ()
+                         else "작업명, 사용하는 장비, 궁금한 점을 알려주세요.")
+                for question in (original.EXAMPLES[:2] if examples is None else examples):
                     st.button(question, key=f"pv2_empty_{question}", type="tertiary",
                               on_click=state.queue_question, args=(question,), icon=":material/north_east:")
         for turn in st.session_state.preventra_turns:

@@ -43,7 +43,46 @@ def current_context():
         return {}
     return {"work_plan": {**value,
             "day": st.session_state.get("plus_day", date.fromisoformat(value["day"])).isoformat(),
-            "work_id": st.session_state.get("plus_work") or None}}
+            "work_id": st.session_state.get("plus_work", value.get('work_id')) or None}}
+
+
+def select_day():
+    previous = st.session_state.plus_saved.snapshot
+    if previous and save({**previous, 'day': st.session_state.plus_day.isoformat(), 'work_id': None}):
+        st.session_state.plus_work = ''
+    elif previous:
+        st.session_state.plus_day = date.fromisoformat(previous['day'])
+
+
+def select_work():
+    previous = st.session_state.plus_saved.snapshot
+    if previous and not save({**previous, 'work_id': st.session_state.plus_work or None}):
+        st.session_state.plus_work = previous.get('work_id') or ''
+
+
+def is_manager():
+    return bool(st.session_state.plus_saved.snapshot or st.session_state.plus_load_failed or
+                any(turn['request'].context.get('work_plan') for turn in st.session_state.preventra_turns))
+
+
+def render_home():
+    from preventra_ui_v2 import views
+    st.session_state.setdefault('plus_home_tabs', st.session_state.get('plus_home_role', '작업자'))
+    worker, manager = st.tabs(['작업자', '관리자'], key='plus_home_tabs', on_change='rerun')
+    # Keep the role when the home widget is unmounted during a conversation.
+    st.session_state.plus_home_role = st.session_state.plus_home_tabs
+    with worker:
+        if worker.open:
+            views.render_home(show_statistics=False)
+    with manager:
+        if manager.open:
+            with st.container(key='plus_manager_home'):
+                st.markdown('## 작업계획을 연결하고, 이어서 확인하세요.')
+                st.write('날짜별 작업과 계획된 안전조치를 살펴보고, 필요한 주의점을 질문할 수 있습니다.')
+                render_plan()
+                if st.session_state.plus_saved.snapshot:
+                    st.button('연결된 계획서로 이어서 질문', key='plus_resume',
+                              on_click=state.navigate, args=('안전 어시스턴트',), disabled=blocked())
 
 
 def submit_chat():
@@ -142,34 +181,39 @@ def render_plan():
     st.markdown("### 작업계획 요약")
     st.text(plan.site)
     st.session_state.setdefault("plus_day", date.fromisoformat(value["day"]))
-    day = st.date_input("확인할 날짜", key="plus_day", disabled=blocked())
+    day_column, work_column = st.columns([1, 2])
+    with day_column:
+        day = st.date_input("계획 기준일", key="plus_day", disabled=blocked(), on_change=select_day)
     items = domain.daily_rows(plan, day)
     options = [""] + [i.work_id for i in items]
+    st.session_state.setdefault('plus_work', value.get('work_id') or '')
     if st.session_state.get("plus_work") not in options:
         st.session_state.plus_work = ""
     labels = {i.work_id: domain.work_selection_label(i) for i in items}
-    selected = st.selectbox("질문할 작업", options, format_func=lambda value: labels.get(value, "해당 날짜 전체"),
-                            key="plus_work", disabled=blocked())
+    with work_column:
+        selected = st.selectbox("질문할 작업", options, format_func=lambda value: labels.get(value, "해당 날짜 전체"),
+                                key="plus_work", disabled=blocked(), on_change=select_work)
+    st.caption(f"계획서 질문의 ‘오늘·오전·오후’는 선택한 {day:%Y-%m-%d} 기준입니다. 다른 날짜는 질문에 적어 주세요.")
     if not items:
         st.info(f"{day:%Y-%m-%d}에 등록된 작업이 없습니다. 계획서의 작업일을 선택해 주세요.")
         st.caption("수록 날짜: " + ", ".join(d.isoformat() for d in sorted({i.day for i in plan.items})))
     else:
         shown = [i for i in items if not selected or i.work_id == selected]
-        st.dataframe(_table(shown), hide_index=True, width="stretch")
-        for item in shown[:20]:
-            with st.expander(domain.work_selection_label(item), expanded=bool(selected)):
+        with st.expander(f'계획 내용 확인 · 작업 {len(shown)}개', expanded=False):
+            st.dataframe(_table(shown), hide_index=True, width="stretch")
+            for item in shown[:20]:
+                st.markdown('**' + domain.work_selection_label(item) + '**')
                 st.caption("계획서에 적힌 내용 · 현장 이행 여부는 별도 확인")
                 st.text("계획된 안전조치: " + (item.planned_controls or "미입력"))
                 st.text("추가 확인: " + (item.follow_up or "미입력"))
                 missing = domain.missing_work_fields(item)
                 if missing:
                     st.warning("확인할 누락 항목: " + ", ".join(missing))
-        if len(shown) > 20:
-            st.caption("상세는 앞 20개만 표시합니다. 위에서 작업을 선택하면 해당 작업을 볼 수 있습니다.")
-        pairs = domain.coordination_candidates(plan.items, day)
-        if pairs:
-            st.info(f"시간이 겹쳐 조정을 확인할 작업 조합 {len(pairs)}개가 있습니다. 계획만으로 위험 여부를 판정하지 않습니다.")
-            with st.expander("동시 작업 확인 후보"):
+            if len(shown) > 20:
+                st.caption("상세는 앞 20개만 표시합니다. 위에서 작업을 선택하면 해당 작업을 볼 수 있습니다.")
+            pairs = domain.coordination_candidates(plan.items, day)
+            if pairs:
+                st.info(f"시간이 겹쳐 조정을 확인할 작업 조합 {len(pairs)}개가 있습니다. 계획만으로 위험 여부를 판정하지 않습니다.")
                 for a,b,reasons in pairs[:20]:
                     st.text(f"{a.work_id} / {b.work_id}: " + ", ".join(reasons))
         if st.button("선택한 작업의 주의점 질문", key="plus_ask", disabled=blocked()):
