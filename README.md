@@ -224,10 +224,19 @@ Prepare a fresh blank human-review file from a candidate CSV. The command preser
 python -m src.sif_rag.prepare_eval_review_template --input data/evaluation/rag_query_ablation_revisions20_top3_assistant_review.csv --output data/evaluation/rag_query_ablation_revisions20_top3_human_review.csv
 ```
 
-After independent review, run the readiness audit:
+After independent review, build a separate gold question set. Only `relevant` candidates become expected case IDs; `uncertain` stays out of the gold set. The command refuses incomplete reviews, automated reviewers, mixed reviewers for one question, and existing outputs:
 
 ```powershell
-python -m src.sif_rag.audit_eval_readiness --questions data/evaluation/rag_query_ablation_100q_revisions20_questions.jsonl --candidate-review data/evaluation/rag_query_ablation_revisions20_top3_human_review.csv
+python -m src.sif_rag.finalize_eval_questions --questions data/evaluation/rag_query_ablation_100q_revisions20_questions.jsonl --candidate-review data/evaluation/rag_query_ablation_revisions20_top3_human_review.csv --output data/evaluation/rag_query_ablation_revisions20_human_gold.jsonl
+```
+
+The gold IDs are limited to the reviewed candidate pool. This workflow does not establish that every relevant case in the full corpus was considered; report the pool size and retrieval scope with any metrics.
+
+Audit the generated gold set before calculating metrics:
+
+```powershell
+python -m src.sif_rag.audit_eval_readiness --questions data/evaluation/rag_query_ablation_revisions20_human_gold.jsonl --candidate-review data/evaluation/rag_query_ablation_revisions20_top3_human_review.csv
+python -m src.sif_rag.evaluate --questions data/evaluation/rag_query_ablation_revisions20_human_gold.jsonl
 ```
 
 The command emits aggregate counts, input SHA-256 fingerprints, and `PASS` or `HOLD`; it does not print question or case content. Exit code `2` means the evaluation inputs are on hold. The retrieval evaluator also refuses partial label sets, duplicate question or expected case IDs, invalid `expected_case_ids`, and `human_gold` rows without a named non-automated reviewer. Legacy fully labeled question files without a `status` field remain supported.
