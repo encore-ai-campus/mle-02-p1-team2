@@ -1,32 +1,32 @@
-# 산업안전 사고예방 도우미 앱
+# Project_1 학습 앱
 
-루트 `streamlit_app.py`의 BM25·pgvector 시연과 별도로 실행하는 SIF/KOSHA 통합 RAG 앱입니다.
+통합 Streamlit 앱의 작업 안전 상담 화면입니다. 통합 앱 진입점은 저장소 루트의 streamlit_app.py입니다.
 
 ## 로컬 실행
 
-저장소 루트에서 실행합니다.
+저장소 루트 /home/playdata/workspace/mle-02-p1-team2에서 실행합니다.
 
 ```bash
 python3 -m venv .venv
-.venv/bin/python -m pip install -r apps/accident_assistant/requirements.txt
-.venv/bin/python -m streamlit run apps/accident_assistant/app.py
+.venv/bin/python -m pip install -r src/Project_1/requirements.txt
+uv run --with-requirements src/Project_1/requirements.txt python -m streamlit run streamlit_app.py
 ```
 
 저장소 루트의 로컬 .env 또는 Streamlit Secrets에 DATABASE_URL(또는 SUPABASE_DB_URL)과 OPENAI_API_KEY를 설정합니다. Supabase에서는 Session pooler의 PostgreSQL URI(5432 포트)를 사용합니다. 비밀값은 커밋하지 않습니다.
 
-통계 CSV는 Supabase Private Storage에서 읽을 수 있습니다. Storage 설정이 없는 로컬 환경은 `apps/accident_assistant/data/`를 사용합니다. 기존 체크아웃에 `src/Project_1/data/`가 있으면 이동 전환 중 자동으로 그 경로를 사용합니다. 사고 검색에는 rag_day1_documents, KOSHA 검색에는 langchain_pg_collection/langchain_pg_embedding의 kosha_guides 컬렉션이 필요합니다. 대화 이력은 chat_history를 사용합니다. 팀 앱의 DB 구조와 같다고 가정하지 않습니다.
+통계 CSV는 Supabase Private Storage에서 읽을 수 있습니다. Storage 설정이 없는 로컬 환경은 src/Project_1/data/를 사용합니다. 사고 검색에는 rag_day1_documents, KOSHA 검색에는 langchain_pg_collection/langchain_pg_embedding의 kosha_guides 컬렉션이 필요합니다. 대화 이력은 chat_history를 사용합니다. 팀 앱의 DB 구조와 같다고 가정하지 않습니다.
 
 ## 오프라인 대화 흐름 검사
 
 ```bash
-PYTHONPATH=apps/accident_assistant .venv/bin/python -m unittest discover -s apps/accident_assistant/tests -v
+PYTHONPATH=src/Project_1 .venv/bin/python -m unittest discover -s src/Project_1/tests -v
 ```
 
 이 검사는 DB 및 OpenAI 호출을 mock으로 대체합니다. 실제 API/DB 통합 검증은 별도입니다.
 
 ## Streamlit Cloud
 
-Main file path는 apps/accident_assistant/app.py입니다. 이 폴더의 requirements.txt를 사용하며 Python 3.12에서 검증했습니다. 연결 정보는 Cloud Secrets에 넣습니다. Private Storage 설정을 함께 넣으면 로컬 통계 CSV 없이 실행할 수 있습니다.
+Main file path는 streamlit_app.py입니다. 이 폴더의 requirements.txt를 사용하며 Python 3.12에서 검증했습니다. 연결 정보는 Cloud Secrets에 넣습니다. Private Storage 설정을 함께 넣으면 로컬 통계 CSV 없이 실행할 수 있습니다.
 
 노트북은 코드와 설명을 보존하고 실행 출력과 실행 번호를 비운 상태로 옮겼습니다. 개인 원본 저장소는 수정하지 않았습니다.
 
@@ -54,9 +54,9 @@ Storage 설정이 있으면 로컬 CSV가 없어도 통계를 로딩합니다. C
 
 - Repository: encore-ai-campus/mle-02-p1-team2
 - Branch: 이 앱 변경사항이 push된 브랜치 (검토·병합 후 main 사용)
-- Main file path: apps/accident_assistant/app.py
+- Main file path: streamlit_app.py
 - Python: 3.12
-- Dependencies: app.py 옆 requirements.txt (기존 패키지로 Storage를 읽으므로 추가 SDK 불필요)
+- Dependencies: src/Project_1/requirements.txt (직접 검색 화면에서 사용하는 기존 패키지 포함)
 
 Cloud에는 .env나 원본 데이터를 업로드하지 않습니다. GitHub에 코드를 push한 뒤 Cloud Secrets를 설정합니다. 다른 PC 또는 시크릿 창에서 통계·규모 필터·6년 추세(2021 사망만인율 공백), SIF/KOSHA 검색, 출처, 후속 질문, 새 대화를 확인합니다. 마지막으로 로컬 Streamlit과 Docker를 종료한 뒤 같은 Cloud URL에서 재확인합니다. 실제 질문은 OpenAI API를 사용합니다.
 
