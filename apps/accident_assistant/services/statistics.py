@@ -1,19 +1,22 @@
 """Day 7·8 노트북의 CSV 로딩과 통계 조회 로직."""
 
 from io import BytesIO
+import logging
+import os
 from pathlib import Path
+import re
 
 import pandas as pd
+import psycopg
+import streamlit as st
+from dotenv import load_dotenv
 
-from services.statistics_storage import download_csvs
+from services.statistics_storage import StatisticsStorageError, download_csvs
 
 
-APP_DIR = Path(__file__).resolve().parents[1]
-DATA_DIR = APP_DIR / "data"
-LEGACY_DATA_DIR = APP_DIR.parents[1] / "src" / "Project_1" / "data"
-if not DATA_DIR.exists() and LEGACY_DATA_DIR.exists():
-    # Keep ignored local datasets available for checkouts migrating from the old layout.
-    DATA_DIR = LEGACY_DATA_DIR
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
+load_dotenv(Path(__file__).resolve().parents[3] / ".env")
+logger = logging.getLogger(__name__)
 YEARS = tuple(range(2020, 2026))
 SIZE_ORDER = (
     "5인 미만", "5-9인", "10-19인", "20-29인", "30-49인",
@@ -32,6 +35,129 @@ SOURCE_2025 = {
     "사업장수": "한국산업안전보건공단_산업중분류별 규모별 사업장수_20251231.csv",
     "사망만인율": "한국산업안전보건공단_산업중분류별 규모별 사망만인율_20251231.csv",
 }
+POSTGRES_STAT_METRICS = frozenset(METRICS)
+POSTGRES_STAT_YEAR = 2025
+POSTGRES_STAT_REFERENCE_DATE = "2025-12-31"
+_SIZE_LABELS = {
+    "5인미만": "5인 미만",
+    "5인9인": "5-9인",
+    "10인19인": "10-19인",
+    "20인29인": "20-29인",
+    "30인49인": "30-49인",
+    "50인99인": "50-99인",
+    "100인299인": "100-299인",
+    "300인499인": "300-499인",
+    "500인999인": "500-999인",
+    "1000인이상": "1000인 이상",
+}
+
+
+def _database_url() -> str | None:
+    """Streamlit Secrets 우선, 로컬에서는 .env의 DB 주소를 사용한다."""
+    for name in ("SUPABASE_DB_URL", "DATABASE_URL"):
+        try:
+            value = st.secrets.get(name)
+        except (FileNotFoundError, KeyError):
+            value = None
+        value = value or os.getenv(name)
+        if value:
+            return str(value)
+    return None
+
+
+def _size_from_label(label: str) -> str | None:
+    normalized = re.sub(r"[\s\-–—]", "", label)
+    return next((size for key, size in _SIZE_LABELS.items() if normalized.startswith(key)), None)
+
+
+def _statistics_from_documents(rows: list[tuple[str, str, dict]]) -> pd.DataFrame:
+    """RAG DB의 2025 통계 문서를 대시보드용 long 형식으로 읽는다."""
+    records = []
+    seen = set()
+    industries_by_metric: dict[str, set[str]] = {}
+
+    for source_id, content, metadata in rows:
+        metadata = metadata or {}
+        metric = metadata.get("metric")
+        industry = metadata.get("industry")
+        sector = metadata.get("sector")
+        if (metric not in POSTGRES_STAT_METRICS
+                or metadata.get("reference_date") != POSTGRES_STAT_REFERENCE_DATE
+                or not industry or not sector or not isinstance(content, str)):
+            raise ValueError(f"통계 문서 metadata 형식을 확인해 주세요: {source_id}")
+        document_key = (metric, industry)
+        if document_key in seen:
+            raise ValueError(f"통계 문서가 중복되었습니다: {source_id}")
+        seen.add(document_key)
+        industries_by_metric.setdefault(metric, set()).add(industry)
+
+        values = {}
+        for line in content.splitlines():
+            if ":" not in line:
+                continue
+            label, raw_value = line.rsplit(":", 1)
+            size = _size_from_label(label.strip())
+            if size is None:
+                continue
+            raw_value = raw_value.strip().replace(",", "")
+            value = pd.to_numeric(raw_value, errors="coerce")
+            if pd.isna(value) and raw_value not in {"자료 없음", "자료없음", "", "-", "—"}:
+                raise ValueError(f"통계 값 형식을 확인해 주세요: {source_id}")
+            if size in values:
+                raise ValueError(f"규모 구간이 중복되었습니다: {source_id}")
+            values[size] = value
+
+        if set(values) != set(SIZE_ORDER):
+            raise ValueError(f"10개 규모 구간을 모두 찾지 못했습니다: {source_id}")
+        for size in SIZE_ORDER:
+            records.append({
+                "연도": POSTGRES_STAT_YEAR,
+                "대업종": sector,
+                "산업중분류": industry,
+                "규모": size,
+                "지표": metric,
+                "값": values[size],
+            })
+
+    if set(industries_by_metric) != POSTGRES_STAT_METRICS:
+        raise ValueError("2025년 통계 4개 지표가 모두 DB에 있는지 확인해 주세요.")
+    if len({frozenset(items) for items in industries_by_metric.values()}) != 1:
+        raise ValueError("2025년 통계 지표별 산업중분류 구성이 서로 다릅니다.")
+    if len(next(iter(industries_by_metric.values()))) != 30:
+        raise ValueError("2025년 통계에서 예상한 산업중분류 30개를 확인하지 못했습니다.")
+
+    data = pd.DataFrame.from_records(records)
+    data["규모"] = pd.Categorical(data["규모"], categories=SIZE_ORDER, ordered=True)
+    return data.sort_values(["연도", "산업중분류", "규모", "지표"]).reset_index(drop=True)
+
+
+def _load_statistics_from_postgres() -> pd.DataFrame | None:
+    """Storage 대체 경로. 기존 임베딩 테이블의 2025 통계만 읽고 수정하지 않는다."""
+    database_url = _database_url()
+    if not database_url:
+        return None
+    try:
+        with psycopg.connect(database_url, connect_timeout=8) as connection:
+            connection.execute("SET TRANSACTION READ ONLY")
+            rows = connection.execute(
+                """SELECT source_id, content, metadata
+                   FROM public.rag_day1_documents
+                   WHERE kind = %s AND metadata->>'reference_date' = %s
+                   ORDER BY source_id""",
+                ("industry_stat", POSTGRES_STAT_REFERENCE_DATE),
+            ).fetchall()
+        if not rows:
+            return None
+        data = _statistics_from_documents(rows)
+        data.attrs["source_warning"] = (
+            "통계 Storage 인증에 실패해 DB에 저장된 2025년 통계로 표시 중입니다. "
+            "2020~2024년 자료는 이 DB에 없어 장기 추세에서 비어 있습니다."
+        )
+        data.attrs["data_source"] = "public.rag_day1_documents · industry_stat · 2025-12-31"
+        return data
+    except (psycopg.Error, ValueError):
+        logger.exception("DB에 저장된 2025 통계 대체 경로도 사용할 수 없습니다.")
+        return None
 
 
 def source_files(data_dir: Path = DATA_DIR) -> dict[tuple[str, int], Path]:
@@ -61,11 +187,30 @@ def storage_files() -> dict[tuple[str, int], str]:
 
 def load_stat_csv(metric: str, year: int, path: Path | BytesIO) -> pd.DataFrame:
     """Day 7·8처럼 크기가 가로열인 CSV를 공통 long 형식으로 변환한다."""
-    wide = pd.read_csv(path, encoding="utf-8-sig")
+    try:
+        wide = pd.read_csv(path, encoding="utf-8-sig", dtype=str, keep_default_na=False)
+    except UnicodeDecodeError:
+        if hasattr(path, "seek"):
+            path.seek(0)
+        wide = pd.read_csv(path, encoding="cp949", dtype=str, keep_default_na=False)
     if wide.shape[1] != 12 or wide.columns[:2].tolist() != ["대업종", "구분"]:
         raise ValueError(f"예상과 다른 산업중분류×규모 CSV 구조: {path}")
     wide.columns = ["대업종", "산업중분류", *SIZE_ORDER]
-    wide["산업중분류"] = wide["산업중분류"].astype(str).str.strip()
+    for column in ("대업종", "산업중분류"):
+        wide[column] = wide[column].astype(str).str.strip()
+        if wide[column].eq("").any():
+            raise ValueError(f"산업 구분 값이 비어 있습니다: {path}")
+    if len(wide) != 30 or wide["산업중분류"].nunique() != 30:
+        raise ValueError(f"산업중분류 30개 행 또는 중복 여부를 확인해 주세요: {path}")
+
+    missing_values = {"", "-", "—", "–", "자료 없음", "자료없음", "N/A", "NA"}
+    for column in SIZE_ORDER:
+        raw = wide[column].str.strip().str.replace(",", "", regex=False)
+        numeric = pd.to_numeric(raw.mask(raw.isin(missing_values)), errors="coerce")
+        invalid = raw.ne("") & ~raw.isin(missing_values) & numeric.isna()
+        if invalid.any():
+            raise ValueError(f"숫자로 변환할 수 없는 통계 값이 있습니다: {path}")
+        wide[column] = numeric
     long = wide.melt(
         id_vars=["대업종", "산업중분류"],
         value_vars=SIZE_ORDER,
@@ -79,10 +224,26 @@ def load_stat_csv(metric: str, year: int, path: Path | BytesIO) -> pd.DataFrame:
 
 
 def load_statistics(data_dir: Path | None = None) -> pd.DataFrame:
-    """Storage 설정이 있으면 원격 CSV, 없으면 기존 로컬 CSV를 읽는다."""
-    contents = download_csvs(storage_files()) if data_dir is None else None
-    sources = ({key: BytesIO(body) for key, body in contents.items()}
-               if contents is not None else source_files(DATA_DIR if data_dir is None else data_dir))
+    """Private Storage를 우선 사용하고, 실패 시 검증된 2025 DB 통계를 읽는다."""
+    if data_dir is None:
+        try:
+            contents = download_csvs(storage_files())
+        except StatisticsStorageError:
+            fallback = _load_statistics_from_postgres()
+            if fallback is not None:
+                return fallback
+            raise
+        if contents is not None:
+            sources = {key: BytesIO(body) for key, body in contents.items()}
+        else:
+            sources = source_files(DATA_DIR)
+            if not sources:
+                fallback = _load_statistics_from_postgres()
+                if fallback is not None:
+                    return fallback
+    else:
+        contents = None
+        sources = source_files(data_dir)
     frames = [load_stat_csv(metric, year, source) for (metric, year), source in sources.items()]
     if not frames:
         return pd.DataFrame(columns=["연도", "대업종", "산업중분류", "규모", "지표", "값"])

@@ -61,3 +61,7 @@ Storage 설정이 있으면 로컬 CSV가 없어도 통계를 로딩합니다. C
 Cloud에는 .env나 원본 데이터를 업로드하지 않습니다. GitHub에 코드를 push한 뒤 Cloud Secrets를 설정합니다. 다른 PC 또는 시크릿 창에서 통계·규모 필터·6년 추세(2021 사망만인율 공백), SIF/KOSHA 검색, 출처, 후속 질문, 새 대화를 확인합니다. 마지막으로 로컬 Streamlit과 Docker를 종료한 뒤 같은 Cloud URL에서 재확인합니다. 실제 질문은 OpenAI API를 사용합니다.
 
 공유 DB에 연결하더라도 앱은 대화별 UUID를 사용합니다. 현재 화면은 같은 DB의 모든 대화를 조회하는 팀 공유 대화 목록이나 로그인 기능을 제공하지 않습니다.
+
+## Personal M0–M8 work
+
+The milestone notebooks are in [`../../notebooks/personal/`](../../notebooks/personal/). Local API keys and Supabase credentials belong in the repository-root `.env` or Streamlit Cloud Secrets; never commit their values. Notebook outputs and local datasets are intentionally cleared or ignored before sharing.

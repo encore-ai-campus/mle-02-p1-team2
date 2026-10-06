@@ -113,6 +113,8 @@ except (RuntimeError, ValueError) as exc:
     logger.error("통계 데이터 로딩 실패: %s", exc)
     st.error("통계 데이터를 불러오지 못했습니다. 저장소 연결과 데이터 준비 상태를 확인해 주세요.")
     st.stop()
+if data.attrs.get("source_warning"):
+    st.warning(data.attrs["source_warning"])
 years = sorted(data["연도"].unique().tolist(), reverse=True) if not data.empty else [2025]
 industries = ["전체", *sorted(data["산업중분류"].unique().tolist())] if not data.empty else ["전체"]
 sizes = ["전체", *SIZE_ORDER]
@@ -141,6 +143,7 @@ safety_tab, stats_tab = st.tabs(["🦺 작업 안전 상담", "📊 산업재해
 with safety_tab:
     st.subheader("작업 안전 상담")
     st.caption("작업명·장비·위험요인을 자연어로 적어 주세요. 사이드바 산업분류는 답변의 보조 정보로만 사용합니다.")
+    st.info("답변은 검색된 사고사례와 안전자료를 바탕으로 한 참고용입니다. 실제 작업 전 현장 위험성평가·작업계획·안전관리자 지침을 확인하고, 위험이 통제되지 않으면 현장 절차에 따라 작업을 멈춰 주세요.")
     st.button("새 대화 시작", on_click=new_chat)
 
     for message in st.session_state.safety_messages:
