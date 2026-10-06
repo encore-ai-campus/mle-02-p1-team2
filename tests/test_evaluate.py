@@ -39,6 +39,38 @@ class EvaluateTests(unittest.TestCase):
         }]
         self.assertEqual(evaluate(questions, DOCUMENTS, k=1)["labeled_questions"], 1)
 
+    def test_rejects_assistant_reviewer_even_when_status_claims_human_gold(self):
+        questions = [{
+            "id": "q001", "question": "forklift", "expected_case_ids": ["SIF-1"],
+            "status": "human_gold", "reviewer": "assistant_second_pass",
+        }]
+        with self.assertRaisesRegex(ValueError, "valid human reviewer"):
+            evaluate(questions, DOCUMENTS, k=1)
+
+    def test_rejects_human_gold_without_reviewer(self):
+        questions = [{
+            "id": "q001", "question": "forklift", "expected_case_ids": ["SIF-1"],
+            "status": "human_gold",
+        }]
+        with self.assertRaisesRegex(ValueError, "valid human reviewer"):
+            evaluate(questions, DOCUMENTS, k=1)
+
+    def test_rejects_duplicate_question_ids(self):
+        question = {"id": "q001", "question": "forklift", "expected_case_ids": ["SIF-1"]}
+        with self.assertRaisesRegex(ValueError, "Duplicate question IDs"):
+            evaluate([question, dict(question)], DOCUMENTS, k=1)
+
+    def test_rejects_duplicate_expected_case_ids(self):
+        question = {"id": "q001", "question": "forklift", "expected_case_ids": ["SIF-1", " SIF-1 "]}
+        with self.assertRaisesRegex(ValueError, "duplicate expected_case_ids"):
+            evaluate([question], DOCUMENTS, k=1)
+
+    def test_rejects_invalid_k(self):
+        question = {"id": "q001", "question": "forklift", "expected_case_ids": ["SIF-1"]}
+        for invalid in (0, -1, True, 1.5):
+            with self.subTest(k=invalid), self.assertRaisesRegex(ValueError, "positive integer"):
+                evaluate([question], DOCUMENTS, k=invalid)
+
 
 if __name__ == "__main__":
     unittest.main()

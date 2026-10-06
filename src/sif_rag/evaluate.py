@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +25,23 @@ def evaluate(
 ) -> dict[str, Any]:
     if not questions:
         raise ValueError("No evaluation questions were provided.")
+    if not isinstance(k, int) or isinstance(k, bool) or k < 1:
+        raise ValueError("k must be a positive integer.")
+
+    seen_ids: set[str] = set()
+    for index, question in enumerate(questions, start=1):
+        if not isinstance(question, dict):
+            raise ValueError(f"Question {index} must be an object.")
+        raw_question_id = question.get("id")
+        question_id = raw_question_id.strip() if isinstance(raw_question_id, str) else ""
+        if not question_id:
+            raise ValueError(f"Question {index} has no question ID.")
+        if question_id in seen_ids:
+            raise ValueError("Duplicate question IDs are not allowed.")
+        seen_ids.add(question_id)
+        if not isinstance(question.get("question"), str) or not question["question"].strip():
+            raise ValueError(f"Question {question_id} has no query text.")
+
     unlabeled_count = sum(not question.get("expected_case_ids") for question in questions)
     if unlabeled_count:
         raise ValueError(
@@ -37,6 +55,24 @@ def evaluate(
         raise ValueError(
             f"Refusing evaluation: {non_gold_count} questions are not marked human_gold."
         )
+    expected_by_id: dict[str, set[str]] = {}
+    for question in questions:
+        expected = question["expected_case_ids"]
+        invalid_expected = not isinstance(expected, list) or any(
+            not isinstance(case_id, str) or not case_id.strip() for case_id in expected
+        )
+        if invalid_expected:
+            raise ValueError(f"Question {question['id']} has invalid expected_case_ids.")
+        normalized_expected = [case_id.strip() for case_id in expected]
+        if len(set(normalized_expected)) != len(normalized_expected):
+            raise ValueError(f"Question {question['id']} has duplicate expected_case_ids.")
+        expected_by_id[question["id"].strip()] = set(normalized_expected)
+        if question.get("status") == "human_gold":
+            reviewer = question.get("reviewer")
+            tokens = set(re.split(r"[^a-z0-9]+", reviewer.casefold())) if isinstance(reviewer, str) else set()
+            automated = tokens & {"assistant", "ai", "model", "bot", "automated", "auto"}
+            if not isinstance(reviewer, str) or not reviewer.strip() or automated:
+                raise ValueError(f"Question {question['id']} is marked human_gold without a valid human reviewer.")
     labeled = questions
 
     hits = 0
@@ -53,12 +89,13 @@ def evaluate(
             k=k,
             industry=question.get("industry_filter"),
         )
-        expected = set(question["expected_case_ids"])
+        question_id = question["id"].strip()
+        expected = expected_by_id[question_id]
         ranked_ids = [document["case_id"] for _, document in results]
         rank = next((position for position, case_id in enumerate(ranked_ids, 1) if case_id in expected), None)
         hits += rank is not None
         reciprocal_ranks.append(1 / rank if rank else 0.0)
-        detail = {"id": question["id"], "rank": rank, "retrieved": ranked_ids}
+        detail = {"id": question_id, "rank": rank, "retrieved": ranked_ids}
         if expansion:
             detail["matched_terms"] = expansion["matched_terms"]
             detail["added_terms"] = expansion["added_terms"]

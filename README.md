@@ -222,4 +222,4 @@ Before reporting retrieval metrics, confirm every question is explicitly marked 
 python -m src.sif_rag.audit_eval_readiness --questions data/evaluation/rag_query_ablation_100q_revisions20_questions.jsonl --candidate-review data/evaluation/rag_query_ablation_revisions20_top3_assistant_review.csv
 ```
 
-The command emits aggregate counts, input SHA-256 fingerprints, and `PASS` or `HOLD`; it does not print question or case content. Exit code `2` means the evaluation inputs are on hold. The retrieval evaluator also refuses partially labeled question sets and questions explicitly marked with a status other than `human_gold`.
+The command emits aggregate counts, input SHA-256 fingerprints, and `PASS` or `HOLD`; it does not print question or case content. Exit code `2` means the evaluation inputs are on hold. The retrieval evaluator also refuses partial label sets, duplicate question or expected case IDs, invalid `expected_case_ids`, and `human_gold` rows without a named non-automated reviewer. Legacy fully labeled question files without a `status` field remain supported.
