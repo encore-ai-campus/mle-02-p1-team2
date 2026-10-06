@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from .query_expansion import DEFAULT_GLOSSARY, GlossaryExpander
-from .search import TOKEN_RE, bm25, load_corpus
+from .search import DEFAULT_CORPUS, TOKEN_RE, bm25, load_corpus
 
 
 STOPWORDS = {
@@ -89,10 +89,10 @@ def build_pool(questions: list[dict[str, Any]], corpus: list[dict[str, Any]], gl
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Prepare a pooled candidate set for raw, focused, and glossary BM25 queries")
-    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/rag_questions_100.jsonl"))
-    parser.add_argument("--corpus", type=Path, default=Path("data/raw/sif_openapi_cases.jsonl"))
+    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/questions/rag_questions_100.jsonl"))
+    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
     parser.add_argument("--glossary", type=Path, default=DEFAULT_GLOSSARY)
-    parser.add_argument("--output", type=Path, default=Path("data/evaluation/rag_query_ablation_pilot_10q.csv"))
+    parser.add_argument("--output", type=Path, default=Path("data/evaluation/labels/rag_query_ablation_pilot_10q.csv"))
     parser.add_argument("--limit", type=int, default=10)
     parser.add_argument("-k", type=int, default=3)
     args = parser.parse_args()
