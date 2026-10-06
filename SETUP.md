@@ -70,10 +70,11 @@ Docker Desktop 설정에서 WSL 2 엔진과 Ubuntu-24.04 통합을 켜고, Power
 화면을 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m streamlit run apps/streamlit/app.py
+.\.venv\Scripts\python.exe -m pip install -r src/Project_1/requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-브라우저에 앱이 열리고 검색 결과에 사례 ID와 출처가 표시되면 로컬 RAG 실행을 확인한 것입니다. 생성형 답변과 임베딩은 유료 API 사용량이 발생할 수 있으므로 별도 키와 팀 사용 기준이 준비된 경우에만 실행합니다.
+사이드바에서 작업 안전 상담과 사례 직접 검색을 선택할 수 있습니다. 검색 결과의 사례 ID와 출처를 확인하면 로컬 RAG 경로가 실행된 것입니다. 생성형 답변과 임베딩은 유료 API 사용량이 발생할 수 있으므로 별도 키와 팀 사용 기준이 준비된 경우에만 실행합니다.
 
 ## 완료 기준
 
