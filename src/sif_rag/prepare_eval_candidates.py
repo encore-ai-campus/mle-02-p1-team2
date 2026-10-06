@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .evaluate import load_questions
-from .search import bm25, load_corpus
+from .search import DEFAULT_CORPUS, bm25, load_corpus
 
 
 FIELDS = (
@@ -50,6 +50,9 @@ def build_review_rows(
                 "retrieved_query": document.get("retrieved_query", ""),
                 "source_url": document.get("source_url", ""),
                 "relevance_label": "",
+                "reviewer": "",
+                "review_status": "candidate",
+                "evidence_reference": document.get("source_url", ""),
                 "review_notes": "",
             }
             row.update({output: fields.get(source, "") for output, source in FIELDS})
@@ -61,9 +64,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         description="Export BM25 candidates for manual relevance review; does not assign labels."
     )
-    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/rag_questions.jsonl"))
-    parser.add_argument("--corpus", type=Path, default=Path("data/raw/sif_openapi_cases.jsonl"))
-    parser.add_argument("--output", type=Path, default=Path("data/evaluation/rag_candidate_review.csv"))
+    parser.add_argument("--questions", type=Path, default=Path("data/evaluation/questions/rag_questions.jsonl"))
+    parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
+    parser.add_argument("--output", type=Path, default=Path("data/evaluation/labels/rag_candidate_review.csv"))
     parser.add_argument("-k", type=int, default=10)
     args = parser.parse_args()
     if args.k < 1:
@@ -76,7 +79,8 @@ def main() -> None:
         "question_id", "question", "industry_filter", "candidate_rank", "bm25_score",
         "case_id", "retrieved_query", "industry_category", "industry_major", "industry_mid",
         "industry_small", "disaster_type", "incident_overview", "object_text", "high_risk_work",
-        "precursor", "control_measure", "source_url", "relevance_label", "review_notes",
+        "precursor", "control_measure", "source_url", "relevance_label", "reviewer",
+        "review_status", "evidence_reference", "review_notes",
     ]
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8-sig", newline="") as target:
