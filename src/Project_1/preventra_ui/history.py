@@ -26,7 +26,8 @@ def encode_result(result):
     return {"version": 1, "status": result.status, "answer": result.answer,
             "cases": [asdict(e) for e in result.cases], "guides": [asdict(e) for e in result.guides],
             "figures": [pio.to_json(f) for f in result.figures],
-            "statistics_caption": result.statistics_caption, "used_tools": result.used_tools}
+            "statistics_caption": result.statistics_caption, "used_tools": result.used_tools,
+            "plan_sources": [asdict(e) for e in result.plan_sources]}
 
 
 def decode_result(payload, fallback):
@@ -37,7 +38,8 @@ def decode_result(payload, fallback):
                            guides=[Evidence(**e) for e in payload.get("guides", [])],
                            figures=[pio.from_json(f) for f in payload.get("figures", [])],
                            statistics_caption=payload.get("statistics_caption", ""),
-                           used_tools=payload.get("used_tools", []))
+                           used_tools=payload.get("used_tools", []),
+                           plan_sources=[Evidence(**e) for e in payload.get("plan_sources", [])])
 
 
 @dataclass(frozen=True)
@@ -99,7 +101,8 @@ class ConversationStore:
             elif isinstance(message, AIMessage) and pending is not None:
                 request_id = pending.additional_kwargs.get("preventra_request_id")
                 if request_id and request_id == message.additional_kwargs.get("preventra_request_id"):
-                    turns.append({"request": AssistantRequest(request_id, identifier, pending.content),
+                    turns.append({"request": AssistantRequest(request_id, identifier, pending.content,
+                                      context=pending.additional_kwargs.get("preventra_context", {})),
                                   "result": decode_result(message.additional_kwargs.get("preventra_result"), message.content)})
                 pending = None
         return turns
@@ -120,6 +123,8 @@ class ConversationStore:
                 title=CASE WHEN %s THEN %s ELSE title END WHERE conversation_id=%s""",
                 (first, title_from_question(request.question), identifier))
             metadata = {"preventra_request_id": request.request_id}
+            if request.context:
+                metadata["preventra_context"] = request.context
             messages = [HumanMessage(request.question, additional_kwargs=metadata),
                         AIMessage(result.answer, additional_kwargs={**metadata, "preventra_result": encode_result(result)})]
             # One commit by add_messages: metadata + both messages are atomic.

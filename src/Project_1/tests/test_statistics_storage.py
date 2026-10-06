@@ -63,6 +63,20 @@ class StorageStatisticsTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             statistics.load_stat_csv("사고재해자수", 2025, BytesIO(text.encode("utf-8-sig")))
 
+    def test_historical_37_category_csv_is_preserved(self):
+        text = CSV.decode("utf-8-sig") + "\n".join(
+            f"제조업,과거업종{index}," + ",".join("1" for _ in range(10))
+            for index in range(7)) + "\n"
+        data = statistics.load_stat_csv("사망만인율", 2020, BytesIO(text.encode("utf-8-sig")))
+        self.assertEqual(data["산업중분류"].nunique(), 37)
+        self.assertEqual(len(data), 370)
+
+    def test_duplicate_categories_remain_invalid(self):
+        text = CSV.decode("utf-8-sig")
+        text += text.splitlines()[1] + "\n"
+        with self.assertRaises(ValueError):
+            statistics.load_stat_csv("사망만인율", 2020, BytesIO(text.encode("utf-8-sig")))
+
     def test_cloud_secrets_take_precedence_over_environment(self):
         with patch.dict(os.environ, {"SUPABASE_SECRET_KEY": "local_value"}), \
              patch.object(storage.st, "secrets", {"SUPABASE_SECRET_KEY": KEY}):
