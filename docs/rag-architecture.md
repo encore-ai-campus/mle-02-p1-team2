@@ -230,12 +230,12 @@ flowchart LR
     STATS_DB --> STATS_TAB
 
     subgraph EVAL["4. 평가·회귀 검증 (사용자 요청 경로와 분리)"]
-        GOLD["사람 검토·근거 연결 완료 문항만 승인"]
+        AI_LABELS["AI provisional 판정 후보 (human_gold 아님)"]
         RETR_EVAL["검색기 내부 비교<br/>SIF·KOSHA별 지표"]
         CHAT_EVAL["통합 상담 답변 평가<br/>근거·인용·금지 주장"]
         REGRESSION["대화·오류·인용 회귀<br/>S04/S05/S07/S08"]
-        GOLD --> RETR_EVAL
-        GOLD --> CHAT_EVAL
+        AI_LABELS --> RETR_EVAL
+        AI_LABELS --> CHAT_EVAL
         REG_SPEC --> REGRESSION
     end
     CONTEXT -. 동일 질문 .-> CHAT_EVAL
@@ -244,7 +244,7 @@ flowchart LR
     SOURCES_OUT -. 인용 검토 .-> CHAT_EVAL
 ~~~
 
-검색기별 성능은 자료 유형마다 기대 근거 ID를 대조해 따로 계산한다. 통합 상담 답변은 동일 질문의 단일 답변을 대상으로 근거 충실성·출처 표시·근거 부족 시 보류를 별도로 판정한다. 사람이 근거 ID와 답변 기준을 검토하지 않은 문항은 골든셋 지표에 포함하지 않는다. S04·S05·S07·S08은 검색 점수가 아니라 대화 문맥, 한쪽 검색 실패, 인용 일치 회귀로 확인한다. 상세 시나리오와 승인 필드는 [통합 앱 골든셋 평가 시나리오](unified-app-evaluation-scenarios.md)에 둔다.
+검색기별 성능은 같은 질문·코퍼스·후보 풀에서 자료 유형별로 비교한다. 사람 검토를 생략하는 이번 진행에서는 AI 판정값을 provisional 후보로만 사용하며, 근거 URL·필드·판정 사유·모델 버전·확신도와 uncertain 건수를 함께 기록한다. 후보 풀 밖 누락을 판정하지 않은 상태에서는 Recall이나 전체 코퍼스 성능으로 해석하지 않는다. 결과는 내부 탐색용으로만 보고하고 human_gold·최종 성능·PASS로 승격하지 않는다. S04·S05·S07·S08은 검색 점수가 아니라 대화 문맥, 한쪽 검색 실패, 인용 일치 회귀로 확인한다. 상세 시나리오와 평가 필드는 [통합 앱 골든셋 평가 시나리오](unified-app-evaluation-scenarios.md)에 둔다.
 
 
 #### 단일 상담 화면 및 내부 의도 라우팅 목표
@@ -276,4 +276,12 @@ flowchart TD
 
 **main 기준 앱 구조:** 로컬 main의 확인 기준 커밋은 61d64ea이다. 작업 안전 상담과 통계는 별도 탭이며, 한 상담 질문은 SIF·KOSHA 양쪽 검색을 거쳐 답변 하나를 낸다. 통계는 챗봇과 분리한다. 별도 직접 검색 화면은 이 골든셋의 사용자 흐름으로 가정하지 않는다.
 
-**골든셋 상태:** 시나리오 정의는 준비 중이다. 기대 근거 ID·허용 답변 기준·금지 주장·사람 검토 상태가 연결되고 승인되기 전까지 문항과 성능 결과는 candidate/HOLD로 관리한다.
+**평가 상태:** 이번 진행은 사람 검토를 생략한다. 모든 자동 판정은 AI provisional candidate로 유지하고 human_gold는 부여하지 않는다. 탐색용 비교는 가능하지만 최종 지표와 PASS 판정은 HOLD다.
+
+
+## 8. AI 잠정 평가 운영
+
+- 후보 쌍은 질문·원문 근거와 함께 AI가 relevant, not_relevant, uncertain으로 판정한다. 검색 방식·순위·점수는 판정 입력에서 가리고, 판정 근거·사유·모델 버전·확신도를 남긴다.
+- expected_case_ids가 비어 있다는 이유만으로 음성 라벨을 만들지 않는다. 근거 부족은 uncertain 또는 insufficient_evidence로 둔다.
+- 같은 후보 풀과 검색 조건으로만 내부 비교를 하고, uncertain 처리 민감도와 제외 건수를 함께 보고한다. 후보 풀이 전체 관련 사례를 포함한다고 확인하지 못하면 Recall 및 전체 코퍼스 성능을 주장하지 않는다.
+- 사람 검토를 생략한 결과는 AI provisional 탐색 지표다. human_gold, 최종 성능 보고, 배포·승인 PASS로 승격하지 않는다.

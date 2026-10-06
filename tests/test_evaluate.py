@@ -72,5 +72,83 @@ class EvaluateTests(unittest.TestCase):
                 evaluate([question], DOCUMENTS, k=invalid)
 
 
+
+def ai_judgment(case_id, label, **updates):
+    value = {
+        "case_id": case_id,
+        "label": label,
+        "annotator": "AI provisional",
+        "model_version": "test-model-v1",
+        "evidence_ref": f"{case_id}:disasterFactor",
+        "rationale": "The source mechanism was compared with the query.",
+        "confidence": "medium",
+    }
+    value.update(updates)
+    return value
+
+
+class AIProvisionalEvaluateTests(unittest.TestCase):
+    def test_requires_explicit_opt_in(self):
+        question = {
+            "id": "q001",
+            "question": "forklift",
+            "status": "ai_provisional",
+            "judgments": [ai_judgment("SIF-1", "relevant")],
+        }
+        with self.assertRaisesRegex(ValueError, "require --allow-ai-provisional"):
+            evaluate([question], DOCUMENTS, k=1)
+
+    def test_reports_provisional_metrics_and_uncertainty_bounds(self):
+        documents = [
+            {"case_id": "SIF-U", "page_content": "forklift forklift forklift forklift", "fields": {}},
+            {"case_id": "SIF-1", "page_content": "forklift", "fields": {}},
+        ]
+        question = {
+            "id": "q001",
+            "question": "forklift",
+            "status": "ai_provisional",
+            "judgments": [
+                ai_judgment("SIF-U", "uncertain"),
+                ai_judgment("SIF-1", "relevant"),
+            ],
+        }
+        result = evaluate([question], documents, k=1, allow_ai_provisional=True)
+        self.assertEqual(result["evaluation_status"], "PROVISIONAL")
+        self.assertEqual(result["evaluation_policy"], "ai_provisional_candidate_pool")
+        self.assertEqual(result["uncertain_candidate_pairs"], 1)
+        self.assertEqual(result["hit_rate_at_1"], 0.0)
+        self.assertGreaterEqual(result["optimistic_hit_rate_at_1"], result["hit_rate_at_1"])
+        self.assertEqual(result["labeled_questions"], 1)
+
+    def test_rejects_missing_provenance(self):
+        question = {
+            "id": "q001",
+            "question": "forklift",
+            "status": "ai_provisional",
+            "judgments": [ai_judgment("SIF-1", "relevant", evidence_ref="")],
+        }
+        with self.assertRaisesRegex(ValueError, "missing evidence_ref"):
+            evaluate([question], DOCUMENTS, k=1, allow_ai_provisional=True)
+
+    def test_rejects_mixed_label_sets(self):
+        questions = [
+            {
+                "id": "q001",
+                "question": "forklift",
+                "status": "ai_provisional",
+                "judgments": [ai_judgment("SIF-1", "relevant")],
+            },
+            {
+                "id": "q002",
+                "question": "fall",
+                "status": "human_gold",
+                "reviewer": "reviewer_A",
+                "expected_case_ids": ["SIF-1"],
+            },
+        ]
+        with self.assertRaisesRegex(ValueError, "every question to be marked ai_provisional"):
+            evaluate(questions, DOCUMENTS, k=1, allow_ai_provisional=True)
+
+
 if __name__ == "__main__":
     unittest.main()

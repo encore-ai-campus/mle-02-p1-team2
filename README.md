@@ -41,7 +41,7 @@ SIF 실제 사고사례를 검색해 유사사례와 예방대책을 출처와 �
 
 RAG 벡터 저장소는 **PostgreSQL + pgvector**로 사용합니다. 사례 벡터 검색과 metadata 필터를 PostgreSQL에서 처리하고, 통계 데이터 조회도 향후 같은 DB 기반으로 통합할 수 있습니다. 과제 안내의 ChromaDB 스택과 다른 선택이므로 제출 전 대체 허용 여부를 확인합니다.
 
-2026-09-28 SIF 조회 API 연결이 확인되어 기본 키워드 수집을 완료했습니다. `data/raw/sif_openapi_cases.jsonl`에 10개 검색어에서 1,048건을 받았으며 사례 ID 중복과 필수 필드 누락은 없습니다. 이는 키워드 기반 표본이지 전체 아카이브가 아닙니다. 통계 CSV 전처리 결과도 준비되어 있고, 변경금지 조건인 SIF XLSX는 별도 HOLD입니다. 평가 질문 20개는 초안이며 `expected_case_ids` 라벨은 수집 사례를 검토해 채웁니다.
+2026-09-28 SIF 조회 API 연결이 확인되어 기본 키워드 수집을 완료했습니다. `data/raw/sif_openapi_cases.jsonl`에 10개 검색어에서 1,048건을 받았으며 사례 ID 중복과 필수 필드 누락은 없습니다. 이는 키워드 기반 표본이지 전체 아카이브가 아닙니다. 통계 CSV 전처리 결과도 준비되어 있고, 변경금지 조건인 SIF XLSX는 별도 HOLD입니다. 평가 질문 20개는 후보입니다. 관련성 라벨은 원문 근거에 대조한 AI 잠정 판정으로 만들며, 사람 검토 gold와 구분합니다.
 
 pgvector 스키마를 로컬 PostgreSQL에서 초기화할 때는 서버에 pgvector 확장이 설치되어 있어야 합니다. SQL의 `vector(1536)`은 `text-embedding-3-small` 기준이므로, 임베딩 모델을 바꾸면 벡터 차원도 함께 맞춥니다. 현재 SQL 파일은 빈 구조만 만들며 SIF 파일을 읽거나 적재하지 않습니다.
 
@@ -91,7 +91,7 @@ python -m src.sif_rag.profile_sif_xlsx "C:\Users\Lee\Downloads\한국산업안�
 python -m src.sif_rag.query_expansion "리프트 작업 중 추락을 막는 대책은?"
 ```
 
-현재 API 코퍼스에 대해 동일 평가 질문으로 기본 검색과 확장 검색의 Hit@k·MRR을 비교할 수 있습니다. 평가 지표를 계산하기 전에 사람이 관련 사례 ID를 검토해야 합니다.
+현재 API 코퍼스에 대해 동일 평가 질문으로 기본 검색과 확장 검색의 Hit@k·MRR을 비교할 수 있습니다. 평가 지표는 동일 후보 풀에 대한 AI 잠정 판정으로 산출할 수 있습니다. 근거와 판정 사유를 기록하고 사람 검토 gold와 구분합니다.
 
 SIF API는 로컬 `.env`의 `DATA_GO_KR_SERVICE_KEY`로 연결합니다. 기본 수집은 10개 seed 검색어 × 검색어당 최대 3페이지(페이지당 최대 100건)이며 검색 중복을 제거합니다. `data/raw/sif_openapi_cases.jsonl`에 현재 1,048건이 수집되어 있습니다. API 라이선스·트래픽 조건은 [공식 서비스 페이지](https://www.data.go.kr/data/15161362/openapi.do)를 확인합니다.
 
@@ -101,13 +101,13 @@ python -m src.sif_rag.collect
 
 이 수집은 키워드 표본이며 전체 아카이브 덤프가 아닙니다. 이미 수집한 코퍼스에 중복을 제거해 추가합니다.
 
-평가 후보 검토 CSV는 BM25 상위 10개를 질문별로 내보냅니다. `relevance_label`은 자동 지정하지 않습니다. 후보는 판단 보조자료이므로 관련 사례가 후보에 없으면 코퍼스에서 찾아 추가 검토합니다.
+평가 후보 검토 CSV는 BM25 상위 10개를 질문별로 내보냅니다. `relevance_label`은 질문·사례 원문 근거를 대조한 AI 잠정 판정으로 채울 수 있습니다. 후보 누락이 의심되면 검색 결과 밖의 코퍼스도 확인하고, 근거 부족·애매한 쌍은 `uncertain`으로 둡니다. 판정 사유와 모델 버전을 함께 보존합니다.
 
 ```powershell
 python -m src.sif_rag.prepare_eval_candidates
 ```
 
-기본 산출물은 `data/evaluation/rag_candidate_review.csv`입니다. 각 행을 `relevant`, `not_relevant`, `uncertain`으로 판정한 뒤 검토 완료 사례만 평가 질문의 `expected_case_ids`에 반영합니다.
+기본 산출물은 `data/evaluation/rag_candidate_review.csv`입니다. 각 질문·사례 쌍을 `relevant`, `not_relevant`, `uncertain`으로 AI 판정하고, 판정 출처·근거·사유를 보존합니다. 원본 후보 파일은 덮어쓰지 않습니다.
 
 API 코퍼스 품질 프로파일은 다음 명령으로 재생성합니다.
 
@@ -125,10 +125,10 @@ python -m src.sif_rag.prepare_sif_documents
 
 기본 산출물은 `data/processed/sif_rag_documents.jsonl`입니다.
 
-평가 코퍼스와 평가 질문별 관련 사례 ID 라벨을 준비한 뒤 다음 옵션으로 두 검색 결과를 나란히 산출합니다.
+평가 코퍼스와 질문 JSONL의 `ai_provisional` 판정 후보 풀을 준비한 뒤 다음 옵션으로 두 검색 결과를 나란히 산출합니다. 일반 실행은 AI 잠정 라벨을 거부하며, 아래 opt-in 플래그를 명시해야 합니다. 출력은 PROVISIONAL로 표시되고, relevant만 센 보수적 지표와 uncertain을 관련 가능성에 포함한 민감도 지표를 함께 냅니다. 후보 풀 밖의 누락은 측정하지 않으며 결과는 내부 탐색용입니다.
 
 ```powershell
-python -m src.sif_rag.evaluate --compare-expansion
+python -m src.sif_rag.evaluate --compare-expansion --allow-ai-provisional
 ```
 
 ## 전처리 데이터 PostgreSQL 적재
@@ -235,7 +235,7 @@ python -m src.sif_rag.rag_cli "지게차 작업 중 보행자 충돌을 예방�
 
 ## Evaluation label readiness audit
 
-Before reporting retrieval metrics, confirm every question is explicitly marked `human_gold`, has non-empty `expected_case_ids`, and names a reviewer. Optional candidate-review CSVs must use the explicit `human_relevance_label` field, include reviewer and rationale, and have a traceable `data.go.kr` source URL. Generic `relevance_label` fields and assistant/automated reviewer identities do not count as human gold. `uncertain` labels are counted separately and should remain available for sensitivity reporting.
+For final or reviewed retrieval metrics, confirm every question is explicitly marked `human_gold`, has non-empty `expected_case_ids`, and names a reviewer. The opt-in `--allow-ai-provisional` mode is exploratory only; it does not authorize `human_gold`, final performance reporting, or `PASS`. Optional candidate-review CSVs must use the explicit `human_relevance_label` field, include reviewer and rationale, and have a traceable `data.go.kr` source URL. Generic `relevance_label` fields and assistant/automated reviewer identities do not count as human gold. `uncertain` labels are counted separately and should remain available for sensitivity reporting.
 
 Prepare a fresh blank human-review file from a candidate CSV. The command preserves candidate context and source links but clears prior machine or human labels, notes, and reviewer identities:
 
