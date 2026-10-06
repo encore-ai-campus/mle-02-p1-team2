@@ -185,6 +185,14 @@ python -m src.sif_rag.rag_cli "사다리 작업 추락 원인과 감소대책" -
 python -m src.sif_rag.rag_cli "건설 현장의 추락 위험은?" --industry 건설 -k 5
 ```
 
+For Agent/tool integrations, request structured JSON output:
+
+```powershell
+python -m src.sif_rag.rag_cli "지게차 작업 중 보행자 충돌을 예방하려면?" --format json
+```
+
+`src/sif_rag.retrieval_tool.search_sif_cases()` accepts `query`, optional `industry`, and `top_k` (1-5). It returns status, ranked case IDs, BM25 scores, evidence fields, and source URLs. Candidates without a case ID or a valid HTTP(S) URL on `data.go.kr` or a subdomain are excluded and reported in `warnings`. Validation checks the official domain and URL structure only; it does not contact the page or confirm that the URL identifies the returned case. Scores are not probabilities, and the corpus is a collected API sample. `tool_schema()` exposes the registration schema.
+
 기본 코퍼스는 `data/processed/sif_rag_documents.jsonl`입니다. 기존 키워드 검색 프로토타입은 API 키 없이 계속 실행할 수 있습니다.
 
 ## 생성형 RAG 빠른 실행
