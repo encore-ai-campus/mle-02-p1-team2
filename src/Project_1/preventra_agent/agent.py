@@ -110,8 +110,10 @@ class SafetyAgent:
                     result = message.artifact
                     if not isinstance(result, ToolResult):
                         raise ValueError("Invalid tool artifact")
-                except Exception:
-                    result = ToolResult(name, "invalid_input", notice="입력 조건이 올바르지 않습니다. 필요한 조건을 확인하세요.")
+                except Exception as exc:
+                    # Do not classify backend failures as invalid user input or expose exception details.
+                    logger.warning("Preventra tool failed: tool=%s error=%s", name, type(exc).__name__)
+                    result = ToolResult(name, "error", notice="조회 중 오류가 발생했습니다. 해당 결과를 사용할 수 없습니다.")
                     message = ToolMessage(json.dumps(result.model_payload(), ensure_ascii=False), tool_call_id=call_id)
                 messages.append(message)
                 results.append(result)

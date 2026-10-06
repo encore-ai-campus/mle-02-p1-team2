@@ -1,4 +1,4 @@
-# Preventra UI
+﻿# Preventra UI
 
 > 이 문서는 1차 UI 구축 당시의 기록입니다. Single Agent 연결은 [PREVENTRA_AGENT.md](PREVENTRA_AGENT.md), 현재 대화 저장·복원과 추적은 [LANGFUSE_SETUP.md](LANGFUSE_SETUP.md)를 참고하세요. 아래의 미연결 상태 설명은 1차 기준입니다.
 
@@ -6,29 +6,29 @@
 
 ## 실행
 
-`src/Project_1`에서 앱 의존성이 설치된 환경으로 실행합니다.
+저장소 루트에서 Python 3.14와 앱 의존성으로 실행합니다.
 
 ```bash
-uv run streamlit run Preventra.py
+uv run --no-project --python 3.14 --with-requirements apps/accident_assistant/requirements.txt streamlit run apps/accident_assistant/Preventra.py
 ```
 
-현재 팀 저장소의 루트 `pyproject.toml`은 Python 3.14를 요구하지만, 기존 Project_1 검증 환경은 Python 3.12입니다. 이 환경을 그대로 사용한 실제 실행 명령은 다음과 같습니다. 동기화를 생략하므로 기존 환경의 패키지를 변경하지 않습니다. 다른 PC에서는 해당 PC의 환경 경로를 사용하세요.
+브라우저 대신 로컬 주소에서 headless로 실행하려면 다음 명령을 사용합니다.
 
 ```bash
-cd /home/playdata/workspace/mle-02-p1-team2/src/Project_1
-export PATH="$HOME/.local/bin:$PATH"
-export UV_PROJECT_ENVIRONMENT=/home/playdata/workspace/rag-project-1/.venv
-export UV_NO_SYNC=1
-uv run streamlit run Preventra.py --server.headless true --server.address 127.0.0.1 --server.port 8511 --browser.gatherUsageStats false
+# 저장소 루트에서 실행
+
+
+
+uv run --no-project --python 3.14 --with-requirements apps/accident_assistant/requirements.txt streamlit run apps/accident_assistant/Preventra.py --server.headless true --server.address 127.0.0.1 --server.port 8511 --browser.gatherUsageStats false
 ```
 
-Python 요구 버전 차이에 대한 uv 경고는 예상됩니다. 이 작업은 프로젝트 Python 버전이나 기존 의존성을 바꾸지 않습니다. 통계는 기존 설정대로 Private Storage 또는 로컬 CSV에서 읽습니다. 원격 오류를 로컬 데이터로 숨기지 않고 화면에 안내하며 메뉴와 질문 전달은 계속 사용할 수 있습니다.
+통계는 기존 설정대로 Private Storage 또는 로컬 CSV에서 읽습니다. 원격 오류를 로컬 데이터로 숨기지 않고 화면에 안내하며 메뉴와 질문 전달은 계속 사용할 수 있습니다.
 
 ## 파일 역할과 재사용
 
 - `Preventra.py`: 앱 설정, 화면 분기, 하단 질문 입력창.
 - `preventra_ui/state.py`: `preventra_` 접두사를 가진 세션 상태, 화면 이동, 질문 이벤트 소비. 홈 이동은 대화를 유지하며 새 대화는 현재 세션의 질문을 비웁니다.
-- `preventra_ui/gateway.py`: 다음 Single Agent 연결 위치인 `dispatch(AssistantRequest) -> AssistantResult`. 현재는 `not_connected`만 반환하고 외부 모델·DB·대화 저장을 호출하지 않습니다.
+- `preventra_ui/gateway.py`: `dispatch(AssistantRequest) -> AssistantResult` 어댑터로 `preventra_agent.SafetyAgent`와 기존 통계·RAG 서비스를 연결합니다. 대화 영구 저장은 구현하지 않습니다.
 - `preventra_ui/views.py`: 홈·어시스턴트·데이터 출처, 선택적으로 표시하는 사고사례/가이드/통계 영역.
 - `preventra_ui/statistics_view.py`: 기존 함수 호출과 표시. `load_statistics`, `filter_statistics`, `kpi_value`, `industry_trend`, `plot_six_year_line`을 재사용합니다.
 - `preventra_ui/style.py`: 이 진입점에서만 삽입되는 네이비·청록 CSS. `.streamlit/config.toml`을 만들거나 수정하지 않습니다.
@@ -52,7 +52,7 @@ Python 요구 버전 차이에 대한 uv 경고는 예상됩니다. 이 작업�
 
 ```bash
 cd /home/playdata/workspace/mle-02-p1-team2
-PYTHONPATH=src/Project_1 /home/playdata/workspace/rag-project-1/.venv/bin/python -m unittest discover -s src/Project_1/tests -v
+PYTHONPATH=apps/accident_assistant uv run --no-project --python 3.14 --with-requirements apps/accident_assistant/requirements.txt python -m unittest discover -s apps/accident_assistant/tests -v
 ```
 
 UI 검사는 가짜 데이터/응답을 테스트 내부에만 주입합니다. 실행 앱은 예시 답변이나 가짜 근거를 표시하지 않습니다. 실제 OpenAI 답변 및 DB 대화 저장·복원은 이번 검증 대상이 아닙니다.

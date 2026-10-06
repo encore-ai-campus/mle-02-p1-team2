@@ -2,12 +2,7 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 import streamlit as st
 
@@ -17,6 +12,7 @@ from src.sif_rag.search import bm25, load_corpus
 from src.sif_rag.vector_store import vector_search
 
 
+PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_CORPUS = PROJECT_ROOT / "data" / "processed" / "sif_rag_documents.jsonl"
 
 
@@ -49,19 +45,6 @@ def main() -> None:
     corpus_path = DEFAULT_CORPUS
     if not corpus_path.exists():
         st.error(f"사례 문서 파일을 찾을 수 없습니다: {corpus_path}")
-        raw_corpus_path = PROJECT_ROOT / "data" / "raw" / "sif_openapi_cases.jsonl"
-        if raw_corpus_path.exists():
-            st.info("원본 API 코퍼스가 있으므로 다음 명령으로 사례 문서를 생성하세요.")
-        else:
-            st.warning(
-                f"원본 코퍼스도 없습니다: {raw_corpus_path}. "
-                "원본 코퍼스를 준비한 뒤 사례 문서를 생성해야 합니다."
-            )
-        st.code("python -m src.sif_rag.prepare_sif_documents", language="bash")
-        st.caption(
-            "배포 환경에서는 이용 조건을 확인한 코퍼스를 앱이 읽을 수 있는 런타임 저장소에 "
-            "별도로 제공해야 합니다. 원본 및 파생 데이터는 저장소에 포함하지 않습니다."
-        )
         st.stop()
 
     modified_at = corpus_path.stat().st_mtime

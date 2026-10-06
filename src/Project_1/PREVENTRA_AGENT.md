@@ -1,4 +1,6 @@
-# Preventra Single Agent (2차)
+﻿# Preventra Single Agent (2차)
+
+> 이 문서는 2차 구현 기록입니다. 현재 대화 저장·복원과 Langfuse 설정/검증은 [LANGFUSE_SETUP.md](LANGFUSE_SETUP.md)를 참고하세요. 아래의 세션 전용 상태와 3차 연결 예정 설명은 2차 기준입니다.
 
 > 이 문서는 2차 구현 기록입니다. 현재 대화 저장·복원과 Langfuse 설정/검증은 [LANGFUSE_SETUP.md](LANGFUSE_SETUP.md)를 참고하세요. 아래의 세션 전용 상태와 3차 연결 예정 설명은 2차 기준입니다.
 
@@ -46,7 +48,7 @@ Tool은 최종 문장을 작성하지 않습니다. 모델에는 구조화된 JS
 실행 환경 및 `uv` 명령은 `PREVENTRA.md`를 참고하세요. 저장소 Python 3.14 요구사항과 기존 3.12 환경의 차이는 그대로이며, 기존 환경을 동기화 없이 사용합니다.
 
 ```bash
-PYTHONPATH=src/Project_1 /home/playdata/workspace/rag-project-1/.venv/bin/python -m unittest discover -s src/Project_1/tests -v
+PYTHONPATH=apps/accident_assistant uv run --no-project --python 3.14 --with-requirements apps/accident_assistant/requirements.txt python -m unittest discover -s apps/accident_assistant/tests -v
 ```
 
 기본 검사는 DB·모델 호출을 mock으로 대체합니다. 실제 모델 검증은 별도 명시적으로 실행하며 원자료·응답 본문을 공개 저장소에 커밋하지 않습니다.

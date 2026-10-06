@@ -1,4 +1,1 @@
-"""Use the repository's canonical services without copying their implementation."""
-from pathlib import Path
-
-__path__ = [str(Path(__file__).resolve().parents[3] / "apps" / "accident_assistant" / "services")]
+"""산업재해 통계와 시각화에 쓰는 재사용 함수."""

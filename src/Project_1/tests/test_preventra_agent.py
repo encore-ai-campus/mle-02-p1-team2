@@ -109,6 +109,23 @@ class AgentTests(unittest.TestCase):
         self.assertEqual([r.status for r in result.tool_results], ["error", "ok"])
         self.assertNotIn("private-secret", str(result))
 
+    def test_tool_exception_is_reported_as_failure_not_invalid_input(self):
+        class BrokenTool:
+            name = "search_sif_cases"
+            args_schema = type("Schema", (), {"model_json_schema": staticmethod(lambda: {})})
+
+            def invoke(self, call, config=None):
+                raise RuntimeError("private-secret")
+
+        class BrokenBackend:
+            def build(self):
+                return [BrokenTool()]
+
+        model = Model(call("search_sif_cases", {"query": "query"}), final())
+        result = SafetyAgent(model, BrokenBackend()).run("query")
+        self.assertEqual(result.tool_results[0].status, "error")
+        self.assertNotIn("private-secret", str(result))
+
     def test_duplicate_call_is_not_executed_twice(self):
         backend = self.backend()
         model = Model(call("search_sif_cases", {"query": "지게차 사고"}), call("search_sif_cases", {"query": "지게차 사고"}, "call-2"), final("사례 [SIF-1]", ["SIF-1"]))
