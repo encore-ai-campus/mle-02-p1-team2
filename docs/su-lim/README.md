@@ -1,15 +1,72 @@
-# su-lim 작업 폴더 (M1~M4)
+# su-lim 작업 폴더 (M1~M9)
+
+산업재해 SIF 사고사례 6,032건을 근거로 답하는 RAG 챗봇과 분석 대시보드입니다. 전처리 → 분석 → 임베딩·ChromaDB 적재 → RAG 체인 → 골든 셋 평가 → 개선 실험 → Streamlit 앱 순서로 만들었습니다.
+
+```
+원본 6개 → 전처리(M2) → 분석(M3) → 임베딩 + ChromaDB(M4)
+        → RAG 체인(M5) → 골든 셋 평가(M6) → 개선 실험(M7) → Streamlit 앱(M8)
+```
+
+## 단계별 파일
 
 | 단계 | 파일 | 내용 |
 |---|---|---|
-| M1 | notebooks/su-lim/01_data_check.ipynb | 원본 6개 파일 구조·결측·중복·기준연도 확인 |
-| M2 | notebooks/su-lim/02_m2_raw_점검.ipynb, docs/su-lim/M2_전처리_명세서.md | 전처리 기준과 처리 결과 |
-| M3 | notebooks/su-lim/03_m3_기술통계분석.ipynb | 기술통계 분석 |
-| M4 | notebooks/su-lim/04_m4_벡터DB적재.py | 사례 6,032건 임베딩 후 ChromaDB 적재 |
+| M1 | `notebooks/su-lim/01_data_check.ipynb` | 원본 6개 파일 구조·결측·중복·기준연도 확인 |
+| M2 | `notebooks/su-lim/02_m2_raw_점검.ipynb`, `docs/su-lim/M2_전처리_명세서.md` | 전처리 기준과 처리 결과(사고사례 6,032건 확정) |
+| M3 | `notebooks/su-lim/03_m3_기술통계분석.ipynb` | 기술통계 분석 |
+| M4 | `notebooks/su-lim/04_m4_벡터DB적재.ipynb` | 사례 6,032건 임베딩(text-embedding-3-small) 후 ChromaDB 적재 |
+| M5 | `notebooks/su-lim/05_m5_RAG체인.ipynb` | 검색 → 사례만 근거로 답변 → 출처 표시. 유사도 0.40 미만이면 답변 거절 |
+| M6 | `notebooks/su-lim/06_m6_평가.ipynb` | 골든 100문항 평가(Hit@K, MRR, Precision@K) |
+| M7 | `notebooks/su-lim/07_m7_개선실험.ipynb` | 통계 문서를 규모×연도 220건으로 분리해 통계 질문 개선 |
+| M8 | `app/su-lim/08_app.py` | 필터를 함께 쓰는 대시보드 + 챗봇 (Streamlit) |
+| M9 | `docs/su-lim/M9_최종정리.md` | 최종 정리, 시연 순서, 한계, KPT |
+
+작업 기록은 `docs/su-lim/작업기록.md`, 산출물 위치는 `docs/su-lim/산출물_위치표_M0-M9.csv`에 있습니다.
 
 ## 환경
-- Python 3.12, uv, ChromaDB, OpenAI text-embedding-3-small
-- API 키와 원본 데이터는 저장소에 포함하지 않았습니다. (.env, data/ 제외)
 
-## 진행 상황
-- M5 이후(RAG 체인, 평가, 개선 실험, 대시보드)는 진행 중입니다.
+- Python 3.12, uv(가상환경), ChromaDB, OpenAI `text-embedding-3-small`, `gpt-4o-mini`
+- API 키(`.env`)와 원본·가공 데이터는 저장소에 포함하지 않습니다. 데이터 이용 조건이 확인되기 전까지 `data/`는 Git에서 제외합니다.
+
+## 실행 방법
+
+사전 조건: 로컬에 `data/processed`, `data/analysis`, `data/chroma`가 있어야 합니다. 프로젝트 폴더의 `.env`에 `OPENAI_API_KEY`를 넣습니다.
+
+```bash
+cd unit1_project
+source .venv/bin/activate
+uv pip install streamlit altair
+streamlit run app/su-lim/08_app.py
+```
+
+- 대시보드는 `.env`가 없어도 동작합니다. 챗봇만 API 키가 필요합니다.
+- 프로젝트 폴더가 다른 곳이면 `APP_ROOT=<폴더>` 환경변수로 지정합니다.
+- 처음 실행할 때 나오는 이메일 입력은 비워 두고 엔터를 누릅니다.
+
+## 앱 기능
+
+- **사이드바 필터**: 업종(전체·제조업등·건설업), 재해 연도, 근거 사례 수(k). 업종과 연도는 대시보드와 챗봇이 함께 쓰고, k는 챗봇 검색에만 쓰입니다.
+- **대시보드**: 지표 4개(분석 사례 수, 끝 연도 사고사망자, 최다 기인물, 사망자 변화율)와 차트 4개(연도별 사례 수, 기인물 상위 10, 규모별 사고사망자, 규모별 사업장 1,000곳당 재해자수).
+- **챗봇**: 필터를 ChromaDB `where` 조건으로 적용해 검색하고, 근거 사례와 출처 카드를 함께 보여 줍니다. 근거가 없으면 "제공된 사례에서 근거를 찾을 수 없습니다."를 표시합니다.
+
+## 평가 결과 요약
+
+| 항목 | 결과 |
+|---|---|
+| 정확 검색 기준 사례 Hit@5 | 0.869 |
+| 현장 말투 질문 Hit@5 | 0.26 |
+| M7 개선 | 통계 문서를 규모×연도 220건으로 분리 |
+
+## 한계
+
+- 현장 말투 질문의 검색 성능이 낮습니다. 질문이 짧고 일반적일수록 유사도가 낮아 근거 없음으로 처리될 수 있습니다.
+- 통계는 규모별 사고사망자수 한 가지뿐입니다. 통계 문서의 업종구분이 `통계`라서 업종 필터를 걸면 검색되지 않습니다.
+- ChromaDB 근사 검색은 컬렉션을 새로 만들 때마다 순위가 조금씩 달라집니다. 비교 평가는 전수 코사인 검색 기준으로도 확인했습니다.
+- 골든 셋의 정답 라벨은 보조 판정이며 사람이 확정한 값이 아닙니다.
+
+## 다음 계획
+
+- 질문 앞부분의 공통 문구 제거, 질문에서 기인물을 뽑아 메타데이터 필터로 사용
+- 골든 셋 v2(③ 유사 사고사례, ④ 사고원인·재발방지) 평가 반영
+- 팀 공용 DB(Supabase pgvector)로 검색 부분 전환
+- 앱에서 필터 적용 중임을 눈에 띄게 안내(k는 챗봇 전용임을 표시)

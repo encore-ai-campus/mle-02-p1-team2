@@ -251,10 +251,19 @@ def build_where(industry, years):
     return conds[0] if len(conds) == 1 else {"$and": conds}
 
 
+def _clip(text, limit=140):
+    """limit 안에서 단어(띄어쓰기) 경계로 자르고, 잘렸으면 '…'를 붙인다."""
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0]
+    return cut.rstrip(",.· ") + "…"
+
+
 def overview_of(doc):
     if "[재해개요]" in doc:
-        return doc.split("[재해개요]")[-1].split("\n[기인물]")[0].strip()[:90]
-    return doc.replace("\n", " ")[:90]
+        return _clip(doc.split("[재해개요]")[-1].split("\n[기인물]")[0])
+    return _clip(doc.replace("\n", " "))
 
 
 def retrieve(client, col, question, k, where):
