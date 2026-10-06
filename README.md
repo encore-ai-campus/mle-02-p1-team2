@@ -2,7 +2,7 @@
 
 SIF 실제 사고사례를 검색해 유사사례와 예방대책을 출처와 함께 제시하고, 산업재해 통계는 별도 정형 데이터 경로에서 분석하는 프로젝트입니다.
 
-전체 데이터 수집부터 전처리, PostgreSQL 저장, 대시보드·RAG 검색·평가까지의 흐름은 [RAG 설계도](docs/rag-architecture.md)와 [Project_1 통합 서비스 아키텍처](docs/product-architecture.md#project_1-통합-서비스-흐름)를 참고합니다.
+전체 데이터 수집부터 전처리, PostgreSQL 저장, 대시보드·RAG 검색·평가까지의 흐름은 [최종 설계도](docs/rag-architecture.md)의 7.4절을 참고합니다.
 
 ## 데이터 구조
 
@@ -24,8 +24,8 @@ SIF 실제 사고사례를 검색해 유사사례와 예방대책을 출처와 �
 ## 저장소 구조
 
 - `src/sif_rag/`: 데이터 수집·전처리·검색·평가 코드
-- `apps/streamlit/app.py`: Streamlit 시연 화면
-- `apps/accident_assistant/`: SIF/KOSHA 통합 Streamlit 앱과 앱 전용 서비스·의존성·테스트
+- `streamlit_app.py`: 단일 Streamlit 실행 진입점(작업 안전 상담·사례 직접 검색)
+- `streamlit_search_page.py`: 검색 확인 화면 모듈; 직접 실행하지 않고 통합 앱에서 사용
 - `sql/`: PostgreSQL 및 pgvector 스키마
 - `scripts/`: 로컬 개발환경 설정 스크립트
 - `data/`: 로컬 데이터 위치. 승인되지 않은 원본·수집물·평가 산출물은 저장소에 포함하지 않습니다.
@@ -200,14 +200,14 @@ python -m src.sif_rag.rag_cli "건설 현장의 추락 위험은?" --industry �
 
 ## Streamlit 데모 실행
 
-대화식 화면을 실행합니다. 제출 때마다 선택한 응답 방식에 따라 API를 호출하거나 검색 근거만 표시합니다.
+통합 화면에서 작업 안전 상담과 사례 직접 검색을 선택해 실행합니다.
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe -m streamlit run apps/streamlit/app.py
+.\.venv\Scripts\python.exe -m pip install -r src/Project_1/requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-기본 화면은 검색 방식(BM25/pgvector), 업종 대분류 필터, 사례 수, 선택적 용어사전 확장, 생성형 답변/검색 결과 표시를 제공합니다. 화면은 `data/processed/sif_rag_documents.jsonl`을 읽고, 수정 시 로컬 캐시를 갱신합니다.
+사이드바에서 작업 안전 상담 또는 사례 직접 검색 화면을 선택합니다. 직접 검색은 `data/processed/sif_rag_documents.jsonl`을 읽으며, BM25/pgvector와 검색 결과/근거 기반 답변을 제공합니다. 상담 화면은 SIF·KOSHA 근거를 함께 표시합니다.
 
 ## 협업 흐름
 

@@ -29,8 +29,6 @@ logs/
 
 # Local and unapproved data artifacts
 data/raw/
-
-data/interim/
 data/vector/
 data/evaluation/
 data/processed/*
@@ -43,10 +41,5 @@ data/processed/*
 *.sqlite
 *.sqlite3
 
-# Independent nested checkout is local-only; it can contain secrets and private data
-/RAG-project/
-
-# Local app datasets
-apps/accident_assistant/data/
-# Legacy path retained so existing local datasets stay ignored during migration
+# Local Project_1 datasets
 src/Project_1/data/

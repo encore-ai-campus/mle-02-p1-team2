@@ -8,12 +8,7 @@ import pandas as pd
 from services.statistics_storage import download_csvs
 
 
-APP_DIR = Path(__file__).resolve().parents[1]
-DATA_DIR = APP_DIR / "data"
-LEGACY_DATA_DIR = APP_DIR.parents[1] / "src" / "Project_1" / "data"
-if not DATA_DIR.exists() and LEGACY_DATA_DIR.exists():
-    # Keep ignored local datasets available for checkouts migrating from the old layout.
-    DATA_DIR = LEGACY_DATA_DIR
+DATA_DIR = Path(__file__).resolve().parents[1] / "data"
 YEARS = tuple(range(2020, 2026))
 SIZE_ORDER = (
     "5인 미만", "5-9인", "10-19인", "20-29인", "30-49인",
