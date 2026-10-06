@@ -3,6 +3,8 @@
 from dataclasses import dataclass
 import re
 
+from services.sif_retrieval import embedding_query as sif_embedding_query
+
 
 EQUIPMENT_ALIASES = {
     "고소작업대": ("고소작업대", "스카이차"),
@@ -120,7 +122,7 @@ def analyze_query(question: str, resolved_question: str | None = None,
     terms = meaningful_terms(search_topic or resolved)
     topic = search_topic or " ".join(dict.fromkeys(part for part in (equipment, work_type, *terms) if part)) or question
     search_text = topic if search_topic else resolved
-    sif_query = f"{search_text} 산업재해 유사 사고사례 사고 원인 재해유발요인"
+    sif_query = sif_embedding_query(search_text)
     kosha_query = f"{search_text} {INTENT_TERMS[intent]}"
     return WorkContext(question.strip(), resolved, equipment, work_type, hazards, intent,
                        category, sif_query, kosha_query, topic, terms)
