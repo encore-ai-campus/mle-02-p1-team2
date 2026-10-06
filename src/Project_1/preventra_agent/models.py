@@ -14,7 +14,7 @@ class ConversationTurn:
 @dataclass(frozen=True)
 class Evidence:
     reference: str
-    kind: Literal["sif", "guide", "statistics"]
+    kind: Literal["sif", "guide", "statistics", "plan"]
     title: str
     excerpt: str
     source: dict = field(default_factory=dict)
