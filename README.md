@@ -212,15 +212,3 @@ python -m src.sif_rag.rag_cli "건설 현장의 추락 위험은?" --industry �
 ## 협업 흐름
 
 기능 브랜치에서 작업하고 검토를 위한 Pull Request를 연 뒤 `main`에 반영합니다. 실제 API 키, 비밀번호, 공개 허가가 확인되지 않은 데이터 파일은 커밋하지 않습니다.
-
-## 개인 분석 노트북과 통합 대시보드
-
-팀 저장소에서 진행한 M0–M8 개인 작업 노트북은 [`notebooks/personal/`](notebooks/personal/)에서 단계별로 확인할 수 있습니다. 실행 환경은 저장소 루트 `pyproject.toml`과 `uv.lock`으로 관리합니다. SIF 원본과 개인 평가 산출물은 이용 조건과 저장소 규칙에 따라 저장소에 올리지 않습니다.
-
-통합 대시보드는 [`apps/accident_assistant/app.py`](apps/accident_assistant/app.py)이며, 화면·통계 변경은 해당 폴더의 테스트로 확인합니다. 개인 자료별 출처·사용 범위와 주의점은 [`docs/personal_project/`](docs/personal_project/)에 정리했습니다.
-
-## 개인 분석 노트북
-
-팀 프로젝트 M0–M8 개인 작업 노트북은 [`notebooks/personal/`](notebooks/personal/)에서 단계별로 확인할 수 있습니다. 실행환경은 저장소 루트의 `pyproject.toml`과 `uv.lock`으로 맞춥니다. 공유 대시보드는 [`apps/accident_assistant/app.py`](apps/accident_assistant/app.py)입니다. 개인 자료별 출처·이용 범위·분석 유의점은 [`docs/personal_project/`](docs/personal_project/)에 정리했습니다.
-
-원본 데이터, 임시 벡터 DB, 검증 결과물과 노트북 출력은 저장소에 포함하지 않습니다. 노트북 코드를 실행하려면 허용된 데이터 파일을 별도로 준비하세요.

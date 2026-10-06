@@ -26,17 +26,3 @@ For ordinary user-requested development tasks in this repository, the user autho
 ## Completion report
 
 Report the task, branch, commit, checks and results, push state, PR link/state, and remaining risks.
-
-## Personal M0–M8 notebooks
-
-- Keep personal learning notebooks under `notebooks/personal/` and name them by milestone, not date.
-- End each notebook with a concise Markdown note covering what was verified, useful findings, caveats, and the next check.
-- Keep raw and processed datasets, API credentials, and private evaluation artifacts out of Git. Do not publish SIF-derived outputs unless the applicable reuse scope is confirmed.
-- Use root `uv add` for dependencies and commit both `pyproject.toml` and `uv.lock`. Run the affected notebook/app tests before opening a PR.
-
-## Personal M0–M8 notebooks
-
-- Keep personal learning notebooks under `notebooks/personal/` and name them by milestone, not date.
-- End each notebook with concise Markdown notes on verified results, useful findings, caveats, and the next check.
-- Keep raw and processed datasets, API credentials, local vector databases, and private evaluation artifacts out of Git. Clear saved notebook outputs before publishing when they could expose source data.
-- Use root `uv add` for dependencies and commit both `pyproject.toml` and `uv.lock`. Run affected app and notebook tests before opening a PR.
