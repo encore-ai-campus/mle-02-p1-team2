@@ -5,7 +5,7 @@ description: Use for development or documentation changes in encore-ai-campus/ml
 
 # GitHub task workflow
 
-Follow the repository root `AGENTS.md` and `GITHUB_AUTOMATION_INSTRUCTIONS.md`. This skill provides the repeatable steps for a requested change; it does not expand the user's requested scope.
+Follow the repository root `AGENTS.md` and `GIT_WORKFLOW.md`. This skill provides the repeatable steps for a requested change; it does not expand the user's requested scope.
 
 ## Workflow
 
@@ -21,11 +21,12 @@ Follow the repository root `AGENTS.md` and `GITHUB_AUTOMATION_INSTRUCTIONS.md`. 
 
 ## GitHub PR triage and GPT handoff
 
-- If a GitHub integration can read PRs but a write returns `403 Resource not accessible by integration`, treat that as missing write access. Do not repeat the same mutation through that connection. Finish any useful read-only review, record which writes failed, and give the user a concise, copy-ready handoff for a GPT session with working GitHub write access.
-- In the handoff, name the repository, list the exact PR actions in the user's approved order, preserve explicit holds, and distinguish completed checks from uncompleted changes. Do not imply a close, merge, edit, or push succeeded unless a fresh read confirms it.
-- For PRs containing `.env` or credentials, do not print, test, or reuse the value. Tell the user which service must revoke/replace it directly, and do not merge while the exposed credential remains active. Removing `.env` from the current diff does not undo prior exposure.
-- For routine notebook cleanup, keep notebook code and evaluation CSVs; clear cell outputs and reset execution counts. Exclude files only when the user asks or there is a clear secret/raw-data issue.
-- For this PR cleanup handoff, preserve the approved order: #20, #17/#21, #13, #8, #14/#16/#18, then small documentation PRs. Keep #19 on hold. For #8, note the exposed `.env`; the user must rotate the key, and the PR stays unmerged until then. For #14, keep notebook code and `golden_set_100.csv`; remove notebook outputs and reset execution counts.
+- Treat the ChatGPT GitHub connection as read-only for repository analysis, review, and planning. Perform file edits and GitHub mutations with Codex CLI and GitHub CLI in WSL; confirm the repository and `gh auth status` before writing.
+- If a GitHub integration write returns `403 Resource not accessible by integration`, do not retry mutations through that integration or widen its permissions. Continue read-only review and hand the concrete action to Codex in WSL.
+- Handoff notes must name the repository and PRs, state the approved order and explicit holds, and separate verified completed work from pending work. Confirm remote state before reporting any mutation succeeded.
+- Do not print, test, or reuse credentials or private data. A secret removed from the current diff may remain in Git history; rotate exposed credentials at the service and keep dependent changes on hold until rotation.
+- For notebooks, preserve code and approved evaluation CSVs. Inspect outputs for sensitive or unapproved data before removing outputs and execution counts; never remove data wholesale as cleanup.
+- Do not embed one-time cleanup orders or PR numbers in this reusable skill. Derive them from current remote state and the latest user approval.
 
 ## Stop conditions
 
