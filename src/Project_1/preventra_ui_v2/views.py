@@ -125,8 +125,7 @@ def render_assistant(*, consume=None, turn_context_renderer=None,
             with st.chat_message("user"):
                 st.write(turn["request"].question)
             with st.chat_message("assistant"):
-                original.render_result(for_display(turn["result"]), turn["request"].request_id,
-                                       show_references=False)
+                original.render_result(for_display(turn["result"]), turn["request"].request_id)
                 if turn_context_renderer:
                     turn_context_renderer(turn)
         if st.session_state.preventra_pending:
@@ -137,16 +136,7 @@ def render_assistant(*, consume=None, turn_context_renderer=None,
             st.rerun()
 
 
-def render_source_notice():
-    # Authored copy only; user and model text never enters custom HTML.
-    st.html('''<aside class="pv2-source-notice" aria-label="자료 활용 안내">
-        <div class="pv2-eyebrow">ABOUT THIS PROJECT</div>
-        <h3>더 나은 현장 판단을 위한 참고 자료</h3>
-        <p>Preventra는 가상 기업·교육 프로젝트입니다.<br>
-        제공 자료는 현장별 위험성평가와 담당자의 검토를 돕기 위한 참고 정보입니다.</p>
-        </aside>''')
-
-
 def render_sources():
     with st.container(key="pv2_sources"):
-        original.render_sources(show_record=False, footer_renderer=render_source_notice)
+        # The current shared view already displays the project scope and data notice.
+        original.render_sources()
