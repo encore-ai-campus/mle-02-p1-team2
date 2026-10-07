@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+from collections.abc import Mapping
 import os
 import re
 import shlex
@@ -27,6 +28,10 @@ SENSITIVE_VALUE_PATTERNS = (
     re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{24,}\b"),
     re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
     re.compile(r"(?i)\b(?:api[_-]?key|password|secret|token)\b\s*[:=]\s*.?[A-Za-z0-9_./+=-]{20,}"),
+)
+SENSITIVE_ENV_NAME = re.compile(
+    r"(?:API[_-]?KEY|ACCESS[_-]?KEY|SECRET|TOKEN|PASSWORD|PASSWD|CREDENTIAL|AUTH|COOKIE|PRIVATE[_-]?KEY)",
+    re.IGNORECASE,
 )
 
 
@@ -217,7 +222,7 @@ def run_codex(command: list[str], worktree: Path, prompt: str, timeout: int, art
         result = subprocess.run(
             [*command, "exec", "--sandbox", "workspace-write", "--ask-for-approval", "never", "--json", prompt],
             cwd=worktree, text=True, encoding="utf-8", errors="replace", capture_output=True,
-            check=False, timeout=timeout,
+            check=False, timeout=timeout, env=codex_environment(),
         )
     except subprocess.TimeoutExpired as exc:
         stdout = exc.stdout.decode("utf-8", "replace") if isinstance(exc.stdout, bytes) else (exc.stdout or "")
@@ -230,6 +235,12 @@ def run_codex(command: list[str], worktree: Path, prompt: str, timeout: int, art
     (artifacts / f"{prefix}.stdout.log").write_text(result.stdout, encoding="utf-8")
     (artifacts / f"{prefix}.stderr.log").write_text(result.stderr, encoding="utf-8")
     return result
+
+
+def codex_environment(environment: Mapping[str, str] | None = None) -> dict[str, str]:
+    """Keep CLI configuration while withholding credential-like variables from Codex."""
+    source = os.environ if environment is None else environment
+    return {name: value for name, value in source.items() if not SENSITIVE_ENV_NAME.search(name)}
 
 
 def parse_args() -> argparse.Namespace:
