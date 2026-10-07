@@ -1,0 +1,60 @@
+﻿M단계,순서,산출물,산출물 위치(파일명+절),링크
+M0,1,주제,"노션 M0 페이지 (링크 직접 입력, GitHub에는 없음)",
+M0,2,데이터 후보,"노션 M0 페이지 (링크 직접 입력, GitHub에는 없음)",
+M0,3,출처/API,"노션 M0 페이지 (링크 직접 입력, GitHub에는 없음)",
+M0,4,수집 확인,"노션 M0 페이지 (링크 직접 입력, GitHub에는 없음)",
+M0,5,최종 데이터 목록,01_data_check.ipynb 1절 (파일 목록),https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,1,수집 코드,01_data_check.ipynb 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,2,원본 파일 6개,"저장소 미포함(data/raw, 로컬) · 목록은 01_data_check.ipynb 1절",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,3,DataFrame,01_data_check.ipynb 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,4,data/raw,저장소 미포함(로컬) · 01_data_check.ipynb 1절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,5,구조 확인 결과,01_data_check.ipynb 3~4절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,6,결측·중복 요약표,01_data_check.ipynb 5절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,7,데이터 명세 초안,01_data_check.ipynb 6~8절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M1,8,01_data_check.ipynb,01_data_check.ipynb,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/01_data_check.ipynb
+M2,1,전처리 기준,M2_전처리_명세서.md 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M2,2,전처리 기준,M2_전처리_명세서.md 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M2,3,중복 처리 결과,M2_전처리_명세서.md 2절 · raw 점검은 02_m2_raw_점검.ipynb 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M2,4,정리된 컬럼,M2_전처리_명세서.md 2~3절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M2,5,표준 용어,M2_전처리_명세서.md 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M2,6,전처리 명세서,M2_전처리_명세서.md,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M2,7,data/processed,저장소 미포함(로컬) · 입력/출력은 M2_전처리_명세서.md 1절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M3,1,분석표,03_m3_기술통계분석.ipynb 1절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M3,2,추이 분석,03_m3_기술통계분석.ipynb 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M3,3,비교표,03_m3_기술통계분석.ipynb 3절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M3,4,관계 분석,03_m3_기술통계분석.ipynb 4절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M3,5,그래프,03_m3_기술통계분석.ipynb 2~4절 (절마다 차트),https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M3,6,분석 결과,"03_m3_기술통계분석.ipynb 4절 (Spearman 상관, TF-IDF는 미적용)",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M3,7,인사이트,03_m3_기술통계분석.ipynb 5절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/03_m3_%EA%B8%B0%EC%88%A0%ED%86%B5%EA%B3%84%EB%B6%84%EC%84%9D.ipynb
+M4,1,문서 설계,04_m4_벡터DB적재.ipynb 1절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/04_m4_%EB%B2%A1%ED%84%B0DB%EC%A0%81%EC%9E%AC.ipynb
+M4,2,문서 설계,04_m4_벡터DB적재.ipynb 1절 (청킹 없이 사례 1건=문서 1건),https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/04_m4_%EB%B2%A1%ED%84%B0DB%EC%A0%81%EC%9E%AC.ipynb
+M4,3,임베딩,04_m4_벡터DB적재.ipynb 3절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/04_m4_%EB%B2%A1%ED%84%B0DB%EC%A0%81%EC%9E%AC.ipynb
+M4,4,Vector DB,"04_m4_벡터DB적재.ipynb 3절 (DB는 로컬 data/chroma, 저장소 미포함)",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/04_m4_%EB%B2%A1%ED%84%B0DB%EC%A0%81%EC%9E%AC.ipynb
+M4,5,검색 결과,04_m4_벡터DB적재.ipynb 4절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/04_m4_%EB%B2%A1%ED%84%B0DB%EC%A0%81%EC%9E%AC.ipynb
+M5,1,RAG 입력,05_m5_RAG체인.ipynb 4절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/05_m5_RAG%EC%B2%B4%EC%9D%B8.ipynb
+M5,2,검색 결과,05_m5_RAG체인.ipynb 2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/05_m5_RAG%EC%B2%B4%EC%9D%B8.ipynb
+M5,3,프롬프트,05_m5_RAG체인.ipynb 3절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/05_m5_RAG%EC%B2%B4%EC%9D%B8.ipynb
+M5,4,답변,05_m5_RAG체인.ipynb 4절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/05_m5_RAG%EC%B2%B4%EC%9D%B8.ipynb
+M5,5,출처·모름 처리,"05_m5_RAG체인.ipynb 4절, 5-1절 (MIN_SIM 점검)",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/05_m5_RAG%EC%B2%B4%EC%9D%B8.ipynb
+M5,6,동작 테스트,05_m5_RAG체인.ipynb 5절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/05_m5_RAG%EC%B2%B4%EC%9D%B8.ipynb
+M6,1,평가 질문,golden_set_100.csv · 06_m6_평가.ipynb 1절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/golden_set_100.csv
+M6,2,Ground Truth,06_m6_평가.ipynb 2절 · golden_set_100.csv,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/06_m6_%ED%8F%89%EA%B0%80.ipynb
+M6,3,평가셋,golden_set_100.csv,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/docs/su-lim/golden_set_100.csv
+M6,4,평가 지표,"06_m6_평가.ipynb 3~4절 (Hit@K, Precision@K, MRR)",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/06_m6_%ED%8F%89%EA%B0%80.ipynb
+M6,5,실패 분석,06_m6_평가.ipynb 4-2절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/06_m6_%ED%8F%89%EA%B0%80.ipynb
+M7,1,개선 대상,07_m7_개선실험.ipynb 7절 (진단) · 06_m6_평가.ipynb 4-3절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/07_m7_%EA%B0%9C%EC%84%A0%EC%8B%A4%ED%97%98.ipynb
+M7,2,개선 코드,"07_m7_개선실험.ipynb 1~2절(v2), 8절(v3)",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/07_m7_%EA%B0%9C%EC%84%A0%EC%8B%A4%ED%97%98.ipynb
+M7,3,재평가 결과,"07_m7_개선실험.ipynb 4절, 8-1절, 8-3절",https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/07_m7_%EA%B0%9C%EC%84%A0%EC%8B%A4%ED%97%98.ipynb
+M7,4,개선 리포트,07_m7_개선실험.ipynb 9절 + 정리,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/b68a8d0/notebooks/su-lim/07_m7_%EA%B0%9C%EC%84%A0%EC%8B%A4%ED%97%98.ipynb
+M8,1,앱 화면,08_app.py 3절 사이드바·탭 구성,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/app/su-lim/08_app.py
+M8,2,대시보드,08_app.py 4절 핵심 지표 4개·차트 4개 배치,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/app/su-lim/08_app.py
+M8,3,대시보드,08_app.py 3절 필터 + 4절 지표,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/app/su-lim/08_app.py
+M8,4,챗봇,08_app.py 5절 챗봇(질문 입력·답변·출처 카드),https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/app/su-lim/08_app.py
+M8,5,통합 앱,08_app.py 전체(대시보드 + 챗봇 한 앱),https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/app/su-lim/08_app.py
+M8,6,시연 가능 앱,작업기록.md M8 결과 + screenshots/m8_*.png,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/%EC%9E%91%EC%97%85%EA%B8%B0%EB%A1%9D.md
+M9,1,최종 점검,작업기록.md M8·M9 결과,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/%EC%9E%91%EC%97%85%EA%B8%B0%EB%A1%9D.md
+M9,2,README.md,M9_최종정리.md 2절 실행 방법,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/M9_%EC%B5%9C%EC%A2%85%EC%A0%95%EB%A6%AC.md
+M9,3,명세서,M2_전처리_명세서.md,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/M2_%EC%A0%84%EC%B2%98%EB%A6%AC_%EB%AA%85%EC%84%B8%EC%84%9C.md
+M9,4,리포트,M9_최종정리.md 1절 + 07_m7_개선실험.ipynb 9절,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/M9_%EC%B5%9C%EC%A2%85%EC%A0%95%EB%A6%AC.md
+M9,5,KPT,M9_최종정리.md 5절 KPT,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/M9_%EC%B5%9C%EC%A2%85%EC%A0%95%EB%A6%AC.md
+M9,6,시연 준비,M9_최종정리.md 3절 시연 순서,https://github.com/encore-ai-campus/mle-02-p1-team2/blob/feat/su-lim-m2-m5/docs/su-lim/M9_%EC%B5%9C%EC%A2%85%EC%A0%95%EB%A6%AC.md
