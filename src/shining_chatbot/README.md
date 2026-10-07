@@ -6,7 +6,7 @@ The app stores its field data locally. Its document-search bridge also depends o
 
 Set SANUP_P_ROOT to the absolute path of that checkout before starting the app. For example, in WSL:
 
-    export SANUP_P_ROOT=/home/lee/workspace/SANUP-P
+    export SANUP_P_ROOT=/absolute/path/to/SANUP-P
     PYTHONPATH=src python -m streamlit run src/shining_chatbot/app.py
 
 The external checkout must have its own virtual environment. The bridge uses .venv/bin/python on Linux/WSL and .venv/Scripts/python.exe on Windows. It does not fall back to the system Python. When SANUP_P_ROOT is unset, the historical Windows default C:\SANUP-P is retained.
