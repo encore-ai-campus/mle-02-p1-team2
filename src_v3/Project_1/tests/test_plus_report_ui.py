@@ -1,4 +1,5 @@
 """Offline regression tests: upload -> report -> saved plan -> follow-up."""
+from concurrent.futures import Future
 from contextlib import ExitStack
 from copy import deepcopy
 from dataclasses import replace
@@ -15,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from openpyxl import Workbook
 from streamlit.testing.v1 import AppTest
 from preventra_plan import domain, report
+from preventra_plan.case_catalog import CaseCatalog
 from preventra_plan.storage import SavedPlan
 from preventra_ui.gateway import AssistantResult, Evidence
 from preventra_ui.history import Conversation, encode_result, decode_result
@@ -40,6 +42,23 @@ def sample_bytes():
     data = BytesIO()
     book.save(data)
     return data.getvalue()
+
+
+def fixture_catalog():
+    rows = []
+    for index in range(12):
+        rows.append((f'fixture-case-{index:02}', '가상 원문', {
+            'group': '건설업', '작업중분류': '비계', '작업소분류': '해체',
+            '기인물': '작업대', '재해종류': '떨어짐' if index < 7 else '맞음',
+            '재해유발요인': f'가상 사고 설명 {index}', 'source_file': '검증 자료', 'sheet': '사례', 'row_number': index + 3,
+        }))
+    return CaseCatalog(rows)
+
+
+def ready_future(value):
+    future = Future()
+    future.set_result(value)
+    return future
 
 
 class MemoryHistory:
@@ -94,6 +113,8 @@ class ReportTests(unittest.TestCase):
         self.stack.enter_context(patch('preventra_ui.state.get_store', return_value=self.history))
         self.stack.enter_context(patch('preventra_plan.ui.get_store', return_value=self.history))
         self.stack.enter_context(patch('preventra_plan.ui.get_plan_store', return_value=self.plans))
+        self.catalog = self.stack.enter_context(patch('preventra_plan.case_report.catalog_future', return_value=ready_future(fixture_catalog())))
+        self.raw_text = self.stack.enter_context(patch('preventra_plan.case_report.case_text', return_value='가상 원문'))
         self.weather = self.stack.enter_context(patch('preventra_plan.report.weather_for_day', return_value={'status': 'unavailable'}))
         self.search = self.stack.enter_context(patch('preventra_agent.tools.SafetyTools.search', side_effect=RuntimeError('offline')))
         self.dispatch = self.stack.enter_context(patch('preventra_plan.agent.dispatch', return_value=AssistantResult(answer='검증 답변 [PLAN-1]')))
@@ -116,7 +137,7 @@ class ReportTests(unittest.TestCase):
         next(b for b in at.button if b.label == '↑').click().run()
         self.assertFalse(at.exception)
 
-    def test_upload_preview_and_applied_report_do_not_call_external_services(self):
+    def test_upload_preview_and_applied_report_do_not_call_weather_or_llm(self):
         at = self.app()
         at.button(key='plus_home_upload_toggle').click().run()
         with patch('streamlit.file_uploader', return_value=BytesIO(sample_bytes())):
@@ -136,8 +157,11 @@ class ReportTests(unittest.TestCase):
         at = self.app()
         self.apply_plan(at)
         ident = at.session_state.preventra_conversation_id
+        failed = Future()
+        failed.set_exception(RuntimeError('offline'))
+        self.catalog.return_value = failed
         at.button(key='plus_load_weather').click().run()
-        at.button(key='plus_load_cases').click().run()
+        at.run()
         self.assertFalse(at.exception)
         self.send(at, '오전 작업 알려줘')
         self.send(at, '그 작업의 확인사항은?')
@@ -154,7 +178,7 @@ class ReportTests(unittest.TestCase):
         self.assertEqual(len(at.chat_message), 4)
         self.assertEqual(self.dispatch.call_count, 3)
         self.assertEqual(self.weather.call_count, 1)
-        self.assertEqual(self.search.call_count, 1)
+        self.search.assert_not_called()
 
     def test_worker_question_is_not_given_manager_plan(self):
         at = self.app()
@@ -180,22 +204,21 @@ class ReportTests(unittest.TestCase):
         self.assertIn('하루 전체 예정 작업', markup)
         self.assertNotIn('오전 안전교육', markup)
 
-    def test_case_chart_is_opt_in_keeps_source_and_reuses_cached_result(self):
-        self.search.side_effect = None
-        self.search.return_value = SimpleNamespace(evidence=[SimpleNamespace(
-            title='검증용 사례', excerpt='검증용 사고 내용',
-            source={'재해종류': '떨어짐', 'doc_id': 'fixture-case', 'source': '검증 자료', 'sheet': '사례', 'row_number': '2'},
-        )])
+    def test_case_charts_are_automatic_and_all_matches_are_paginated(self):
         at = self.app()
         self.apply_plan(at)
-        at.button(key='plus_load_cases').click().run()
         self.assertFalse(at.exception)
-        markup = '\n'.join(str(e.proto) for e in at.get('html'))
+        markup = '\n'.join(m.value for m in at.markdown)
         self.assertIn('sr-donut', markup)
         self.assertIn('떨어짐', markup)
-        self.assertTrue(any('fixture-case' in m.value for m in at.markdown))
-        at.run()
-        self.assertEqual(self.search.call_count, 1)
+        self.assertIn('12', markup)
+        self.assertTrue(any('fixture-case-00' in m.value for m in at.caption))
+        selector = next(s for s in at.selectbox if s.label == '사례 페이지')
+        selector.select(1).run()
+        self.assertFalse(at.exception)
+        self.assertTrue(any('fixture-case-11' in m.value for m in at.caption))
+        self.raw_text.assert_not_called()
+        self.search.assert_not_called()
 
     def test_display_hides_internal_tokens_but_saved_evidence_survives(self):
         self.dispatch.return_value = AssistantResult(

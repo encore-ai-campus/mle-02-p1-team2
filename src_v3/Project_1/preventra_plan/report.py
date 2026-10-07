@@ -1,5 +1,4 @@
 """Manager-facing workday brief: site conditions and task-matched accident cases."""
-from collections import Counter
 from datetime import date, time, datetime
 from hashlib import sha256
 from html import escape
@@ -218,74 +217,6 @@ def _base_figure() -> go.Figure:
     return figure
 
 
-def _render_case_candidates(items, day: date):
-    if not items:
-        return
-    selected = st.selectbox("사고사례를 확인할 작업", items,
-                            format_func=domain.work_selection_label, key="plus_case_task")
-    title = selected.activity
-    query = " / ".join(filter(None, [selected.activity, selected.trade, selected.equipment]))[:1200]
-    cache_key = f"{day.isoformat()}:{query}"
-    st.markdown(f'<div class="plus-section-kicker">작업별 사고사례</div>'
-                f'<h2 class="plus-section-title">{escape(title)} · 유사 사고 유형</h2>', unsafe_allow_html=True)
-    st.caption("작업명·공종·장비가 유사한 수록 사고사례를 유형별로 묶었습니다. 전체 발생 건수 통계는 아닙니다.")
-
-    def search_cases():
-        try:
-            from preventra_agent.tools import SafetyTools
-            with st.spinner("작업 표현과 유사한 사고사례를 찾고 있습니다…"):
-                result = SafetyTools().search(query, "sif")
-            st.session_state.plus_report_cases = {
-                "key": cache_key,
-                "rows": [{"title": evidence.title, "text": evidence.excerpt[:900], "metadata": evidence.source or {}}
-                         for evidence in result.evidence[:12]],
-            }
-        except Exception:
-            st.session_state.plus_report_cases = {"key": cache_key, "error": True, "rows": []}
-
-    case_cache = st.session_state.setdefault("plus_report_case_cache", {})
-    cached = case_cache.get(cache_key, {})
-    requested = st.button("유사 사고사례 다시 검색" if cached else "유사 사고사례 불러오기",
-                          key="plus_load_cases", disabled=ui_blocked())
-    if requested and query:
-        search_cases()
-        cached = st.session_state.pop("plus_report_cases", {})
-        case_cache[cache_key] = cached
-    if not cached:
-        st.caption("필요할 때 SIF 검색으로 이 작업의 사고사례와 출처를 확인하세요.")
-        return
-    if cached.get("error"):
-        st.caption("유사 사고사례를 불러오지 못했습니다. 사고사례 데이터 연결을 확인해 주세요.")
-        return
-    rows = cached.get("rows", [])
-    if not rows:
-        st.caption("이 작업과 직접 연결되는 사고사례를 찾지 못했습니다.")
-        return
-    categories = []
-    for row in rows:
-        metadata = row["metadata"]
-        label = next((str(metadata.get(key)).strip() for key in ("재해종류", "accident_type") if metadata.get(key)), "미분류")
-        categories.append(label[:35])
-    counts = Counter(categories).most_common(8)
-    from preventra_plan.vendor.briefing_report import safety_briefing_html
-    markup = safety_briefing_html({"cases": [{
-        "activity": selected.activity, "total": len(rows),
-        "counts": [{"name": name, "count": count} for name, count in counts],
-    }]})
-    # Keep the teammate's case cards/SVG; the plan briefing above already covers tasks.
-    style = markup[markup.index("<style>"):markup.index("</style>") + 8]
-    cases = markup[markup.index('<section class="sr-section sr-cases">'):]
-    cases = cases.replace("공개 SIF 키워드 사례 빈도", "이번 SIF 검색에서 반환된 사례의 유형 분포")
-    st.html('<section class="safety-report">' + style + cases)
-    with st.expander(f"유사 사고사례 {len(rows)}건"):
-        for row in rows:
-            st.markdown(f"**{escape(row['title'])}**")
-            st.write(row["text"])
-            from preventra_ui.gateway import Evidence
-            from preventra_ui.views import render_source
-            render_source(Evidence(row["title"], "", row["text"], source=row["metadata"]))
-
-
 def _brief_scope_options(items):
     options = {"day": "하루 전체"}
     morning = [item for item in items if item.start < time(12, 0)]
@@ -392,8 +323,9 @@ def render_manager_dashboard(*, show_controls=True, show_heading=True, show_plan
                 st.caption("앞 20개 조합을 표시합니다. 전체 일정에서 나머지 작업도 확인하세요.")
     st.markdown("#### 현장 날씨")
     _render_optional_weather(plan, day)
-    _render_case_candidates(items, day)
-    st.caption("출처: 적용한 작업계획서. 기상과 사고사례는 조회한 경우에만 추가됩니다.")
+    from preventra_plan.case_report import render_case_report
+    render_case_report(items, key=f"plus_cases_{day.isoformat()}_{selected_scope}")
+    st.caption("출처: 적용한 작업계획서, 연결된 SIF 사고사례. 기상 정보는 조회한 경우에 추가됩니다.")
     st.button("선택 작업 주의사항 질문하기", key="plus_ask", type="primary",
               on_click=_ask_about_selection, width="stretch")
     if show_plan_change:

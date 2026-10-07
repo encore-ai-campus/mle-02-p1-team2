@@ -122,6 +122,8 @@ def render_home():
 
 
 def _render_manager_home():
+    from preventra_plan.case_report import warm_case_catalog
+    warm_case_catalog()
     snapshot = st.session_state.plus_saved.snapshot
     plan = domain.decode_plan(snapshot['plan']) if snapshot else None
     day = st.session_state.get('plus_day', date.fromisoformat(snapshot['day']) if snapshot else domain.today_korea())
@@ -387,6 +389,8 @@ def render_plan(*, show_upload=True, show_context=True):
                     _render_plan_brief(candidate, preview_day, preview_items, "하루 전체")
                     st.plotly_chart(plan_timeline(preview_items, preview_day), width="stretch",
                                     config={"displayModeBar": False}, key="plus_preview_timeline")
+                    from preventra_plan.case_report import render_case_report
+                    render_case_report(preview_items, key="plus_preview_cases_" + st.session_state.plus_candidate_token + preview_day.isoformat())
                 for issue in candidate.issues:
                     st.warning(issue)
                 previous = st.session_state.plus_saved.snapshot

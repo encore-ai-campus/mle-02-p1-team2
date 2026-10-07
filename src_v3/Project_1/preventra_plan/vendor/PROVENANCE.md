@@ -7,3 +7,6 @@ Copied byte-for-byte from the user-provided source on 2026-10-06. Originals rema
 
 ## briefing_report.py
 Copied from `src_v2/shining_chatbot/briefing_report.py`. Reuses task cards and SVG case charts. Adaptations: explicit report scope instead of morning-only labels, optional case section, task provenance and untruncated detail. No SANUP-P process or SQLite dependency.
+
+## case_summary.py
+Reused from `src_v2/shining_chatbot/case_summary.py`. Preserves literal activity/equipment keyword matching, minimum five matches, most-specific qualifying term, and accident-type frequency logic. Adaptations: receives a Supabase-backed construction DataFrame instead of reading SANUP-P parquet; adds all matched record IDs for paginated source viewing. Report lookup does not use embeddings or the chat TOP_K. Safety-measure extraction fields remain empty in this adapter; plans and formal guidance retain their separate roles.
