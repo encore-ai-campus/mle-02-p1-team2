@@ -191,8 +191,8 @@ def render_assistant(*, consume=None, turn_context_renderer=None,
                 pending = None
         with st.container(key="pv2_chat_heading"):
             st.markdown("### " + title)
-            st.caption("선택한 작업 날짜의 대화와 답변 근거를 확인하세요." if turns or pending
-                       else "이 날짜의 작업에 대해 질문하고, 답변 근거를 확인하세요.")
+            st.caption("선택한 작업 날짜의 대화와 답변 근거를 확인하세요." if examples == ()
+                       else "작업의 맥락을 이어가고, 답변에 사용된 근거를 확인하세요.")
         if st.session_state.preventra_input_notice:
             st.info(st.session_state.preventra_input_notice)
         if not turns and not pending:
@@ -207,7 +207,7 @@ def render_assistant(*, consume=None, turn_context_renderer=None,
             with st.chat_message("user"):
                 st.write(turn["request"].question)
             with st.chat_message("assistant"):
-                original.render_result(for_display(turn["result"]), turn["request"].request_id)
+                original.render_result(for_display(turn["result"]), turn["request"].request_id, show_references=False)
                 if turn_context_renderer:
                     turn_context_renderer(turn)
         if pending:

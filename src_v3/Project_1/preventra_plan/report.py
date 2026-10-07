@@ -1,6 +1,6 @@
 """Manager-facing workday brief: site conditions and task-matched accident cases."""
 from collections import Counter
-from datetime import date, time
+from datetime import date, time, datetime
 from hashlib import sha256
 from html import escape
 import json
@@ -218,10 +218,11 @@ def _base_figure() -> go.Figure:
     return figure
 
 
-def _render_case_candidates(items, day: date, *, auto_search=False):
+def _render_case_candidates(items, day: date):
     if not items:
         return
-    selected = items[0]
+    selected = st.selectbox("사고사례를 확인할 작업", items,
+                            format_func=domain.work_selection_label, key="plus_case_task")
     title = selected.activity
     query = " / ".join(filter(None, [selected.activity, selected.trade, selected.equipment]))[:1200]
     cache_key = f"{day.isoformat()}:{query}"
@@ -244,13 +245,15 @@ def _render_case_candidates(items, day: date, *, auto_search=False):
 
     case_cache = st.session_state.setdefault("plus_report_case_cache", {})
     cached = case_cache.get(cache_key, {})
-    if cached.get("key") != cache_key:
-        if not auto_search or not query:
-            st.caption("작업을 선택하면 해당 공종의 유사 사고사례를 확인할 수 있습니다.")
-            return
+    requested = st.button("유사 사고사례 다시 검색" if cached else "유사 사고사례 불러오기",
+                          key="plus_load_cases", disabled=ui_blocked())
+    if requested and query:
         search_cases()
         cached = st.session_state.pop("plus_report_cases", {})
         case_cache[cache_key] = cached
+    if not cached:
+        st.caption("필요할 때 SIF 검색으로 이 작업의 사고사례와 출처를 확인하세요.")
+        return
     if cached.get("error"):
         st.caption("유사 사고사례를 불러오지 못했습니다. 사고사례 데이터 연결을 확인해 주세요.")
         return
@@ -261,43 +264,26 @@ def _render_case_candidates(items, day: date, *, auto_search=False):
     categories = []
     for row in rows:
         metadata = row["metadata"]
-        label = next((str(metadata.get(key)).strip() for key in ("재해종류", "재해유발요인", "소분류", "기인물") if metadata.get(key)), "사고사례")
+        label = next((str(metadata.get(key)).strip() for key in ("재해종류", "accident_type") if metadata.get(key)), "미분류")
         categories.append(label[:35])
     counts = Counter(categories).most_common(8)
-    figure = _base_figure()
-    figure.add_trace(go.Bar(
-        x=[value for _, value in counts], y=[label for label, _ in counts], orientation="h",
-        text=[f"{count}건" for _, count in counts], textposition="outside",
-        textfont=dict(family="Pretendard, sans-serif", size=11, color="#5d6b7e"),
-        cliponaxis=False,
-        marker=dict(color=["#3f79ed" if n == max(v for _, v in counts) else "#cbdcff" for _, n in counts],
-                    line=dict(color="#ffffff", width=1), cornerradius=7),
-        hovertemplate="사고 유형  %{y}<br>유사 사례  <b>%{x}건</b><extra></extra>",
-    ))
-    max_count = max(value for _, value in counts)
-    figure.update_layout(
-        height=max(190, min(270, 48 * len(counts) + 74)),
-        margin=dict(l=4, r=34, t=8, b=18),
-        showlegend=False, bargap=.48,
-        xaxis=dict(range=[0, max_count * 1.4], dtick=1, tickformat="d", title=None,
-                   showgrid=True, gridcolor="#edf1f6", gridwidth=1,
-                   tickfont=dict(family="Pretendard, sans-serif", size=10, color="#8793a3")),
-        yaxis=dict(autorange="reversed", showgrid=False,
-                   tickfont=dict(family="Pretendard, sans-serif", size=11, color="#455367")),
-    )
-    chart_col, summary_col = st.columns([1.7, .72], gap="large", vertical_alignment="center")
-    with chart_col:
-        st.plotly_chart(figure, width="stretch", config={"displayModeBar": False}, key=f"plus_report_case_chart_{selected.work_id}")
-    top_label, top_count = counts[0]
-    with summary_col:
-        st.html(f'''<div class="plus-case-summary">
-          <span>검색된 유사 사례</span><strong>{len(rows)}<small>건</small></strong>
-          <div></div><span>가장 많이 나타난 유형</span><b>{escape(top_label)}</b>
-          <small>해당 유형 {top_count}건</small></div>''')
+    from preventra_plan.vendor.briefing_report import safety_briefing_html
+    markup = safety_briefing_html({"cases": [{
+        "activity": selected.activity, "total": len(rows),
+        "counts": [{"name": name, "count": count} for name, count in counts],
+    }]})
+    # Keep the teammate's case cards/SVG; the plan briefing above already covers tasks.
+    style = markup[markup.index("<style>"):markup.index("</style>") + 8]
+    cases = markup[markup.index('<section class="sr-section sr-cases">'):]
+    cases = cases.replace("공개 SIF 키워드 사례 빈도", "이번 SIF 검색에서 반환된 사례의 유형 분포")
+    st.html('<section class="safety-report">' + style + cases)
     with st.expander(f"유사 사고사례 {len(rows)}건"):
         for row in rows:
             st.markdown(f"**{escape(row['title'])}**")
-            st.caption(escape(row["text"]))
+            st.write(row["text"])
+            from preventra_ui.gateway import Evidence
+            from preventra_ui.views import render_source
+            render_source(Evidence(row["title"], "", row["text"], source=row["metadata"]))
 
 
 def _brief_scope_options(items):
@@ -347,7 +333,7 @@ def render_manager_dashboard(*, show_controls=True, show_heading=True, show_plan
             with weather_col:
                 st.text_input("날씨 조회 지역 · 시/군/구", key="plus_weather_location", help="주소 전체 대신 앞의 세 행정구역 단위까지만 조회합니다.")
     else:
-        st.session_state.setdefault("plus_weather_location", " ".join(plan.site_location.split()[:3]))
+        st.session_state.plus_weather_location = " ".join(plan.site_location.split()[:3])
 
     scope_options = _brief_scope_options(daily)
     if st.session_state.get("plus_brief_scope") not in scope_options:
@@ -375,24 +361,6 @@ def render_manager_dashboard(*, show_controls=True, show_heading=True, show_plan
         st.info(f"해당 날짜에 등록된 작업이 없습니다. ({day:%Y년 %m월 %d일}) 다른 날짜의 작업을 확인해 주세요.")
         return
 
-    # Put the conditions that can change the day's controls before the work summary.
-    st.markdown(f'<div class="plus-section-kicker">현장 조건 · {day:%m월 %d일}</div>', unsafe_allow_html=True)
-    weather = weather_for_day(st.session_state.plus_weather_location, day.isoformat())
-    season = _season(day)
-    if weather.get("status") == "ok":
-        place = weather.get("place") or st.session_state.plus_weather_location
-        temp_summary, rain_summary, wind_summary = _weather_summary(weather)
-        metrics = (("현장 위치", place), ("기온", temp_summary), ("강수", rain_summary), ("바람", wind_summary))
-        st.html('<div class="plus-weather-strip">' + "".join(
-            f'<div><span>{escape(label)}</span><strong>{escape(str(value_text))}</strong></div>'
-            for label, value_text in metrics) + '</div>')
-    elif weather.get("status") == "out_of_range":
-        st.info("선택 날짜가 예보 제공 범위를 벗어났습니다. 현장 기상청 예보를 확인해 주세요.")
-    else:
-        st.info("지역 날씨를 가져오지 못했습니다. 작업계획서의 현장지역 또는 조회 지역을 확인해 주세요.")
-    st.markdown(f'<div class="plus-weather-alert"><strong>오늘 현장 주의</strong><span>{escape(_weather_brief(weather, season))}</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="plus-divider"></div>', unsafe_allow_html=True)
-
     workers = sum(item.people or 0 for item in items)
     people_recorded = sum(item.people is not None for item in items)
     missing = sum(bool(domain.missing_work_fields(item)) for item in items)
@@ -402,13 +370,30 @@ def render_manager_dashboard(*, show_controls=True, show_heading=True, show_plan
             + _metric_card("추가 확인 작업", f"{missing}건", "계획 안전조치·담당·장비 등 누락 포함")
             + '</div>')
     st.markdown('<div class="plus-divider"></div>', unsafe_allow_html=True)
-    task_scope = selected_scope.startswith("task:") or len(daily) == 1
-    if task_scope and len(items) == 1:
-        _render_case_candidates(items, day, auto_search=True)
-        st.markdown('<div class="plus-divider"></div>', unsafe_allow_html=True)
-    elif len(daily) > 1:
-        st.caption("개별 작업을 선택하면 해당 공종의 유사 사고사례 그래프가 표시됩니다.")
-    st.markdown('<div class="plus-report-footer">사고사례 분포는 계획 작업과 유사한 사례 검색 결과를 분류한 참고 자료입니다. 발생 건수나 위험 확률로 해석하지 마세요.</div>', unsafe_allow_html=True)
+    _render_plan_brief(plan, day, items, scope_label)
+    st.markdown("#### 작업 시간표")
+    st.plotly_chart(plan_timeline(items, day), width="stretch",
+                    config={"displayModeBar": False}, key="plus_plan_timeline")
+    st.caption("작업계획서의 시작·종료 시각입니다. 실제 수행 여부나 위험도를 나타내지 않습니다.")
+    with st.expander("전체 작업·출처 확인"):
+        from preventra_plan.ui import _table
+        st.dataframe([{**row, "안전조치": item.planned_controls, "시작 전 확인": item.follow_up,
+                       "담당": item.owner, "미기재": ", ".join(domain.missing_work_fields(item))}
+                      for row, item in zip(_table(items), items)], hide_index=True, width="stretch")
+    pairs = domain.coordination_candidates(plan.items, day)
+    selected_ids = {item.work_id for item in items}
+    relevant_pairs = [(a, b, reasons) for a, b, reasons in pairs
+                      if a.work_id in selected_ids or b.work_id in selected_ids]
+    if relevant_pairs:
+        with st.expander(f"동시작업 조정 확인 · {len(relevant_pairs)}개 조합", expanded=True):
+            for a, b, reasons in relevant_pairs[:20]:
+                st.write(f"{a.activity} ({a.work_id}) / {b.activity} ({b.work_id}): " + ", ".join(reasons))
+            if len(relevant_pairs) > 20:
+                st.caption("앞 20개 조합을 표시합니다. 전체 일정에서 나머지 작업도 확인하세요.")
+    st.markdown("#### 현장 날씨")
+    _render_optional_weather(plan, day)
+    _render_case_candidates(items, day)
+    st.caption("출처: 적용한 작업계획서. 기상과 사고사례는 조회한 경우에만 추가됩니다.")
     st.button("선택 작업 주의사항 질문하기", key="plus_ask", type="primary",
               on_click=_ask_about_selection, width="stretch")
     if show_plan_change:
@@ -469,3 +454,79 @@ def _ask_about_selection():
     state.queue_question(f"선택한 범위({scope})의 작업에 맞춰 안전교육에서 다룰 주요 주의사항과 확인 항목을 근거 자료와 함께 정리해 주세요.",
                          context=context,
                          destination="홈" if st.session_state.preventra_page == "홈" else "안전 어시스턴트")
+
+
+def plan_timeline(items, day):
+    figure = _base_figure()
+    labels = [f"{item.activity} · {item.work_id}" for item in items]
+    starts = [datetime.combine(day, item.start) for item in items]
+    ends = [datetime.combine(day, item.end) for item in items]
+    figure.add_trace(go.Bar(
+        y=labels, x=[(end - start).total_seconds() * 1000 for start, end in zip(starts, ends)],
+        base=starts, orientation="h", marker_color="#6a9fd7",
+        customdata=[[f"{item.start:%H:%M}–{item.end:%H:%M}", item.area,
+                     f"{item.sheet} {item.row}행"] for item in items],
+        hovertemplate="%{y}<br>%{customdata[0]} · %{customdata[1]}<br>%{customdata[2]}<extra></extra>",
+    ))
+    figure.update_layout(height=max(240, min(900, 80 + 38 * len(items))), showlegend=False)
+    figure.update_xaxes(type="date", tickformat="%H:%M", title="계획 시각")
+    figure.update_yaxes(autorange="reversed", showgrid=False, automargin=True)
+    return figure
+
+
+def plan_brief_payload(plan, day, items, scope_label):
+    tasks = []
+    for item in items:
+        missing = domain.missing_work_fields(item)
+        check = item.follow_up or "시작 전 확인사항 미기재"
+        if missing:
+            check += " · 미기재: " + ", ".join(missing)
+        tasks.append({
+            "time": f"{item.start:%H:%M}–{item.end:%H:%M}", "area": item.area,
+            "activity": item.activity, "equipment": item.equipment,
+            "controls": item.planned_controls or "계획 안전조치 미기재", "check": check,
+            "source": f"작업계획서 · {item.sheet} {item.row}행 · {item.work_id}",
+            "detail": f"장비: {item.equipment or '미기재'} / 담당: {item.owner or '미기재'} / "
+                      f"안전조치: {item.planned_controls or '미기재'} / 확인: {check}",
+        })
+    return {
+        "date": f"{day:%Y.%m.%d}", "weekday": "월화수목금토일"[day.weekday()] + "요일",
+        "site": plan.site, "location": plan.site_location, "scope": scope_label,
+        "summary": f"{scope_label} 작업 {len(items)}건. 계획된 안전조치와 미기재 항목을 작업 전에 확인하세요.",
+        "tasks": tasks, "season": _season(day),
+        "season_note": "계획서에 기재된 내용입니다. 현장 이행 여부는 별도로 확인하세요.",
+        "weather_label": "아래에서 현장 날씨 조회 가능",
+    }
+
+
+def _render_plan_brief(plan, day, items, scope_label):
+    from preventra_plan.vendor.briefing_report import safety_briefing_html
+    st.html(safety_briefing_html(plan_brief_payload(plan, day, items, scope_label), show_cases=False))
+
+
+def _render_optional_weather(plan, day):
+    location = st.session_state.get("plus_weather_location") or " ".join(plan.site_location.split()[:3])
+    key = (location, day.isoformat())
+    requested = st.button("날씨 불러오기·갱신", key="plus_load_weather", disabled=ui_blocked())
+    weather = None
+    if requested:
+        with st.spinner("선택한 날짜의 지역 날씨를 확인하고 있습니다…"):
+            weather = weather_for_day(location, day.isoformat())
+        st.session_state.plus_report_weather = {"key": key, "weather": weather}
+    elif st.session_state.get("plus_report_weather", {}).get("key") == key:
+        weather = st.session_state.plus_report_weather["weather"]
+    if weather is None:
+        st.caption("계획서 보고서는 준비됐습니다. 지역 예보가 필요하면 불러오세요.")
+        return
+    if weather.get("status") == "ok":
+        temp, rain, wind = _weather_summary(weather)
+        metrics = (("현장 위치", weather.get("place") or location), ("기온", temp), ("강수", rain), ("바람", wind))
+        st.html('<div class="plus-weather-strip">' + "".join(
+            f'<div><span>{escape(label)}</span><strong>{escape(str(value))}</strong></div>'
+            for label, value in metrics) + '</div>')
+        st.caption(f"출처: Open-Meteo · {weather.get('source', '')} · {day:%Y-%m-%d}")
+        st.info(_weather_brief(weather, _season(day)))
+    elif weather.get("status") == "out_of_range":
+        st.info("선택한 날짜가 예보 제공 범위를 벗어났습니다. 현장 예보를 확인해 주세요.")
+    else:
+        st.info("날씨를 불러오지 못했습니다. 계획 보고서는 계속 이용할 수 있습니다.")

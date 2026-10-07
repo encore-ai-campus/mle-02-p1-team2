@@ -378,7 +378,15 @@ def render_plan(*, show_upload=True, show_context=True):
             candidate = st.session_state.plus_candidate
             if candidate:
                 st.text(f"{candidate.site} · 작업 {len(candidate.items)}개")
-                st.dataframe(_table(candidate.items), hide_index=True, width="stretch")
+                from preventra_plan.report import _render_plan_brief, plan_timeline
+                days = sorted({item.day for item in candidate.items})
+                preview_day = st.selectbox("미리볼 작업일", days, key="plus_preview_" + st.session_state.plus_candidate_token)
+                preview_items = domain.daily_rows(candidate, preview_day)
+                st.caption("적용 전 보고서 미리보기 · 계획서 적용 후 이력에 저장되고 후속 질문에 연결됩니다.")
+                with st.container(key="plus_upload_preview"):
+                    _render_plan_brief(candidate, preview_day, preview_items, "하루 전체")
+                    st.plotly_chart(plan_timeline(preview_items, preview_day), width="stretch",
+                                    config={"displayModeBar": False}, key="plus_preview_timeline")
                 for issue in candidate.issues:
                     st.warning(issue)
                 previous = st.session_state.plus_saved.snapshot

@@ -86,26 +86,26 @@ def render_source(item):
         st.link_button("원문 출처 열기", url)
 
 
-def render_cases(cases):
+def render_cases(cases, *, show_references=True):
     st.markdown("#### 관련 사고사례")
     for case in cases:
         with st.container(border=True):
-            st.write(f"[{case.reference}] {case.title}")
+            st.write(f"[{case.reference}] {case.title}" if show_references else case.title)
             st.write(case.excerpt[:500])
             with st.expander("사고사례 원문·출처 확인"):
                 st.write(case.excerpt)
                 render_source(case)
 
 
-def render_guides(guides):
+def render_guides(guides, *, show_references=True):
     st.markdown("#### 안전가이드 근거")
     for guide in guides:
-        with st.expander(f"[{guide.reference}] {guide.title}"):
+        with st.expander(f"[{guide.reference}] {guide.title}" if show_references else guide.title):
             st.write(guide.excerpt)
             render_source(guide)
 
 
-def render_result(result: AssistantResult, request_id=""):
+def render_result(result: AssistantResult, request_id="", *, show_references=True):
     if result.status == "not_connected":
         st.caption("질문 전달 완료 · 답변 기능 연결 준비 중")
         return
@@ -115,9 +115,9 @@ def render_result(result: AssistantResult, request_id=""):
     if result.answer:
         st.write(result.answer)
     if result.cases:
-        render_cases(result.cases)
+        render_cases(result.cases, show_references=show_references)
     if result.guides:
-        render_guides(result.guides)
+        render_guides(result.guides, show_references=show_references)
     if result.figures:
         st.markdown("#### 관련 통계")
         for index, figure in enumerate(result.figures):

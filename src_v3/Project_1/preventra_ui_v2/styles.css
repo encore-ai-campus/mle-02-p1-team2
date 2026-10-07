@@ -21,7 +21,7 @@
 .stApp [data-testid="stHeader"] { background: rgba(247,248,250,.94); }
 .stApp .stMainBlockContainer { max-width: 1160px; padding: 1.4rem 2.4rem 4rem; }
 .stApp:has(.st-key-pv2_app) .stMainBlockContainer { max-width: 1160px; padding: 1.4rem 2.4rem 4rem; }
-.stApp [data-testid="stToolbar"], .stApp [data-testid="stDecoration"] { display: none !important; }
+.stApp [data-testid="stDecoration"] { display: none !important; }
 .stApp footer, #MainMenu { display: none !important; }
 .stApp [data-testid="stSidebar"] { background: #f3f6fb; border-right: 0; }
 .stApp :is(h1,h2,h3,h4,p,button,input,textarea,label) { font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
@@ -347,10 +347,7 @@
 }
 
 /* Match the supplied manager landing reference while keeping project history visible. */
-.stApp:has(.st-key-plus_manager_home) .st-key-pv2_header,
-.stApp:has(.st-key-plus_manager_home) .st-key-plus_role_switch {
-  display: none !important;
-}
+
 .stApp:has(.st-key-plus_manager_home) .stMainBlockContainer {
   width: 100%;
   max-width: 1600px;
@@ -484,18 +481,6 @@
   .stApp:has(.st-key-plus_manager_home) .plus-scroll-top { right: .75rem; bottom: .65rem; }
   .stApp .st-key-preventra_float_home { right: .75rem; bottom: 4rem; }
 }
-.stApp:has(.st-key-plus_manager_home) [data-testid="stSidebar"][aria-expanded="true"] {
-  display: flex !important;
-  min-width: 18rem;
-  width: 18rem !important;
-  flex: 0 0 18rem !important;
-  background: #f2f6fc;
-}
-.stApp:has(.st-key-plus_manager_home) [data-testid="stSidebar"][aria-expanded="false"] {
-  display: none !important;
-  width: 0 !important;
-  flex: 0 0 0 !important;
-}
 .st-key-preventra_sidebar { padding: .8rem .65rem 1.1rem; }
 .st-key-preventra_sidebar .pv-brand { padding: .35rem .5rem .1rem; }
 .st-key-preventra_sidebar > [data-testid="stCaptionContainer"] { padding: 0 .55rem; color: #9aa6b7; font-size: .64rem; letter-spacing: .14em; }
@@ -561,3 +546,55 @@
   overflow: visible; border: 0; border-bottom: 1px solid #e6ebf2; border-radius: 0; background: transparent; box-shadow: none;
 }
 .stApp:has(.st-key-plus_manager_home) .st-key-plus_dashboard .plus-divider { margin-block: 1.7rem; }
+
+/* Reuse Preventra v2 conversation layout and keep native navigation reachable. */
+.st-key-pv2_chat { max-width: 820px; margin: 2rem auto 0; }
+.st-key-pv2_chat_heading { border-bottom: 1px solid #dde4df; padding-bottom: .8rem; margin-bottom: 1rem; }
+.st-key-pv2_chat_heading h3 { font-size: 1.25rem; letter-spacing: -.035em; }
+.st-key-pv2_chat [data-testid="stChatMessage"] { padding: 1.25rem 0; background: transparent; min-width: 0; }
+.st-key-pv2_chat :is([data-testid="stChatMessageAvatarUser"], [data-testid="stChatMessageAvatarAssistant"]) { display: none; }
+.st-key-pv2_chat [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+  width: fit-content; max-width: 78%; margin: .5rem 0 .75rem auto;
+  padding: .85rem 1.15rem; background: #edf3ee; border-radius: 20px;
+}
+.st-key-pv2_chat [data-testid="stChatMessageContent"] { min-width: 0; overflow-wrap: anywhere; }
+.st-key-pv2_chat [data-testid="stMarkdownContainer"] p { line-height: 1.9; font-size: .95rem; }
+.st-key-pv2_chat [data-testid="stExpander"] details { border-color: #dde4df; box-shadow: none; }
+.st-key-pv2_chat h4 { font-size: 1.05rem; margin-top: 1rem; }
+.st-key-pv2_empty { padding: 3rem 0; }
+.st-key-pv2_empty h2 { font-size: 1.8rem; letter-spacing: -.04em; }
+/* 900px border box minus two 40px gutters = the same 820px conversation width. */
+.stApp:has(.st-key-pv2_app) [data-testid="stBottomBlockContainer"] {
+  box-sizing: border-box; width: 100%; max-width: 900px; margin-inline: auto;
+  padding: 1rem 2.5rem 1.2rem;
+}
+.stApp:has(.st-key-pv2_app) .st-key-preventra_chat_question [data-testid="stChatInput"] { border: 1px solid #c4d4ca; border-radius: 24px; background: #fff; }
+.stApp:has(.st-key-pv2_app) .st-key-preventra_chat_question [data-testid="stChatInput"] > div { border-radius: inherit; background: transparent; }
+/* Hide the visual counter only; st.chat_input still enforces max_chars=4000. */
+.stApp:has(.st-key-pv2_app) .st-key-preventra_chat_question [data-testid="InputInstructions"] { display: none; }
+
+.stApp:has(.st-key-pv2_app) .stMainBlockContainer {
+  padding-top: 4.5rem;
+}
+.stApp [data-testid="stSidebarHeader"] { padding-top: 1rem; }
+.stApp [data-testid="stSidebarCollapsedControl"] {
+  visibility: visible; pointer-events: auto;
+}
+.st-key-pv2_chat [data-testid="stChatMessage"] { box-shadow: none; border: 0; }
+.st-key-pv2_chat [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+  background: #eaf0f7;
+}
+.st-key-pv2_chat [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+  width: 100%; background: transparent;
+}
+@media (max-width: 820px) {
+  .stApp:has(.st-key-pv2_app) .stMainBlockContainer { padding-top: 4.5rem; }
+  .st-key-pv2_chat [data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+    max-width: 90%; padding: .8rem 1rem;
+  }
+}
+
+.stApp [data-testid="stSidebarCollapseButton"],
+.stApp [data-testid="stSidebarCollapsedControl"] { visibility: visible !important; }
+
+.st-key-plus_ask button[kind="primary"] p { color: #fff; }
