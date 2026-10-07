@@ -22,13 +22,17 @@ from shining_chatbot.field_session import clear_site_context
 from shining_chatbot.incident_data import read_incidents_csv, sample_incidents
 from shining_chatbot.infographics import monthly_infographic
 from shining_chatbot.plan_revision import make_revision
+from shining_chatbot.runtime_paths import (
+    missing_sanup_files,
+    resolve_sanup_root,
+    sanup_bridge_command,
+)
 from shining_chatbot.tbm_data import daily_items
 from shining_chatbot.weather_data import forecast_summary, summarize_work_window, work_weather_notes
 from shining_chatbot.weather_panel import resolve_plan_weather_location, weather_for_day
 from shining_chatbot.work_plan import WorkPlan, read_work_plan, work_selection_label
 
 
-DEFAULT_ROOT = Path(r"C:\SANUP-P")
 SAMPLE_WORK_PLAN = Path(__file__).parent / "static" / "sample_work_plan.xlsx"
 SOURCE_OPTIONS = {
     "전체 자료": "all",
@@ -93,7 +97,7 @@ def _safe_external_url(value: object) -> str | None:
 
 
 def _root() -> Path:
-    return Path(os.getenv("SANUP_P_ROOT", str(DEFAULT_ROOT))).expanduser()
+    return resolve_sanup_root()
 
 
 def _has_api_key(root: Path) -> bool:
@@ -110,21 +114,12 @@ def _has_api_key(root: Path) -> bool:
 
 
 def _missing_files(root: Path) -> list[str]:
-    required = (
-        ".venv/Scripts/python.exe",
-        "src/retriever.py",
-        "src/rag_chain.py",
-        "data/personal/corpus/chunks.jsonl",
-        "data/personal/corpus/index_meta.json",
-        "data/personal/corpus/index_meta_semantic.json",
-        "chroma_db/personal/chroma.sqlite3",
-    )
-    return [item for item in required if not (root / item).is_file()]
+    return missing_sanup_files(root)
 
 
 def ask_sanup(root: Path, request: dict) -> dict:
     bridge = Path(__file__).with_name("rag_bridge.py")
-    command = [str(root / ".venv/Scripts/python.exe"), "-X", "utf8", str(bridge), str(root)]
+    command = sanup_bridge_command(root, bridge)
     try:
         completed = subprocess.run(
             command,

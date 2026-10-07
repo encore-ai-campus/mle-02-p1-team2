@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 import re
 from collections import Counter
 from dataclasses import dataclass
@@ -11,6 +10,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from shining_chatbot.runtime_paths import resolve_sanup_root
 from shining_chatbot.work_plan import WorkItem
 
 
@@ -41,7 +41,7 @@ class CaseSummary:
 
 
 def _root() -> Path:
-    return Path(os.getenv("SANUP_P_ROOT", r"C:\SANUP-P")).expanduser()
+    return resolve_sanup_root()
 
 
 @st.cache_data(show_spinner=False)
