@@ -26,7 +26,8 @@ def encode_result(result):
     return {"version": 1, "status": result.status, "answer": result.answer,
             "cases": [asdict(e) for e in result.cases], "guides": [asdict(e) for e in result.guides],
             "figures": [pio.to_json(f) for f in result.figures],
-            "statistics_caption": result.statistics_caption, "used_tools": result.used_tools}
+            "statistics_caption": result.statistics_caption, "used_tools": result.used_tools,
+            "plan_sources": [asdict(e) for e in result.plan_sources]}
 
 
 def decode_result(payload, fallback):
@@ -37,7 +38,8 @@ def decode_result(payload, fallback):
                            guides=[Evidence(**e) for e in payload.get("guides", [])],
                            figures=[pio.from_json(f) for f in payload.get("figures", [])],
                            statistics_caption=payload.get("statistics_caption", ""),
-                           used_tools=payload.get("used_tools", []))
+                           used_tools=payload.get("used_tools", []),
+                           plan_sources=[Evidence(**e) for e in payload.get("plan_sources", [])])
 
 
 @dataclass(frozen=True)

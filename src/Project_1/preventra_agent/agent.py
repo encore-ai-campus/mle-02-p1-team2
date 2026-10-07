@@ -43,7 +43,8 @@ def create_model():
 
 
 class SafetyAgent:
-    def __init__(self, model=None, backend=None):
+    def __init__(self, model=None, backend=None, *, system_prompt=SYSTEM_PROMPT):
+        self.system_prompt = system_prompt
         self.model = model if model is not None else create_model()
         self.backend = backend if backend is not None else SafetyTools()
 
@@ -58,7 +59,7 @@ class SafetyAgent:
         tools = {tool.name: tool for tool in self.backend.build()}
         model = self.model.bind_tools(list(tools.values()), strict=True,
                                       parallel_tool_calls=False, response_format=FinalAnswer)
-        messages = [SystemMessage(SYSTEM_PROMPT)]
+        messages = [SystemMessage(self.system_prompt)]
         # Phase 3 seam: hydrate ConversationTurn records before entering this loop.
         for turn in history[-8:]:
             messages.extend([HumanMessage(turn.question), AIMessage(turn.final_answer)])
@@ -89,7 +90,7 @@ class SafetyAgent:
                     final = (FinalAnswer.model_validate(parsed) if parsed is not None
                              else FinalAnswer.model_validate_json(reply.content))
                     available = {e.reference: e for result in results if result.status == "ok" for e in result.evidence}
-                    citations = set(re.findall(r"\[((?:SIF|GUIDE|STATS)-\d+)\]", final.final_answer))
+                    citations = set(re.findall(r"\[((?:SIF|GUIDE|STATS|PLAN)-\d+)\]", final.final_answer))
                     if set(final.evidence_ids) != citations or not citations.issubset(available):
                         raise ValueError("Invalid evidence references")
                     return AgentResult(final.final_answer, list(dict.fromkeys(r.tool_name for r in results)),
