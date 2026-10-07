@@ -22,6 +22,7 @@ from shining_chatbot.field_session import clear_site_context
 from shining_chatbot.incident_data import read_incidents_csv, sample_incidents
 from shining_chatbot.infographics import monthly_infographic
 from shining_chatbot.plan_revision import make_revision
+from shining_chatbot.setup_notice import missing_setup_notice
 from shining_chatbot.runtime_paths import (
     missing_sanup_files,
     resolve_sanup_root,
@@ -350,9 +351,11 @@ def show_chatbot(incidents: pd.DataFrame, source_name: str, is_sample: bool, dat
     )
     if missing:
         st.info(
-            f"현장 작업·조치·TBM 질문과 CSV 조회는 사용할 수 있습니다. "
-            f"SANUP-P 문서 검색은 {root}의 필요 파일 {len(missing)}개가 없어 연결되지 않았습니다."
+            "현장 작업·조치·TBM 질문과 CSV 조회는 사용할 수 있습니다. "
+            f"SANUP-P 문서 검색은 필요 파일 {len(missing)}개가 없어 연결되지 않았습니다."
         )
+        with st.expander(f"SANUP-P 연결 설정 · 누락 파일 {len(missing)}개"):
+            st.code(missing_setup_notice(root, missing), language="text")
     elif not has_key:
         st.info("OpenAI API 키가 없어 문자 검색으로 근거 문서만 보여줍니다. 답변 생성은 SANUP-P의 .env에 키를 설정하면 사용할 수 있습니다.")
 
