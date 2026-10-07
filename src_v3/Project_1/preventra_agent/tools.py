@@ -117,10 +117,14 @@ class SafetyTools:
         return None
 
     def source(self, metric, years, industry, size):
+        metadata = self.data().attrs
+        database_source = metadata.get("data_source")
         return {
             "source": "한국산업안전보건공단 산업중분류별 규모별 통계 CSV",
-            "files": [storage_files()[(metric, year)] for year in years],
-            "provider": "supabase_storage",
+            "files": [] if database_source else [storage_files()[(metric, year)] for year in years],
+            "provider": "supabase_postgres" if database_source else "supabase_storage",
+            "database_source": database_source,
+            "source_warning": metadata.get("source_warning", ""),
             "years": years, "industry": industry or "확보된 산업중분류 전체",
             "size": size or "확보된 규모 전체", "metric": metric,
             "aggregation": "단일 산업·규모 원자료율" if metric == "사망만인율" else "확보된 셀의 건수 합계; 누락값 제외",
@@ -152,7 +156,7 @@ class SafetyTools:
             payload["industries"] = totals.rename(columns={"값": "value"}).to_dict("records")
             figures = [plot_industry_bar(totals, metric, industry)]
         return ToolResult(name, evidence=[evidence], data=payload, figures=figures,
-                          notice="전국 전체 통계와의 일치 여부는 별도 확인이 필요합니다. 그래프는 확보된 산업중분류 범위입니다.")
+                          notice=(data.attrs.get("source_warning", "") + " 전국 전체 통계와의 일치 여부는 별도 확인이 필요합니다. 그래프는 확보된 산업중분류 범위입니다.").strip())
 
     def trend(self, metric, industry, size, start_year, end_year):
         name = "get_accident_trend"
@@ -187,7 +191,7 @@ class SafetyTools:
         fig.update_layout(title=f"{industry or '확보범위 전체'} · {metric} ({start}–{end})")
         fig.update_xaxes(tickvals=list(range(start, end + 1)))
         return ToolResult(name, evidence=[evidence], data=payload, figures=[fig],
-                          notice="누락 연도는 null이며 0으로 대체하거나 선을 연결하지 않습니다. 집계 범위는 출처 조건을 따릅니다.")
+                          notice=(data.attrs.get("source_warning", "") + " 누락 연도는 null이며 0으로 대체하거나 선을 연결하지 않습니다. 집계 범위는 출처 조건을 따릅니다.").strip())
 
     def build(self):
         definitions = [

@@ -139,7 +139,7 @@ def _load_statistics_from_postgres() -> pd.DataFrame | None:
             return None
         data = _statistics_from_documents(rows)
         data.attrs["source_warning"] = (
-            "통계 Storage 인증에 실패해 DB에 저장된 2025년 통계로 표시 중입니다. "
+            "통계 Storage 자료를 읽지 못해 DB에 저장된 2025년 통계로 표시 중입니다. "
             "2020~2024년 자료는 이 DB에 없어 장기 추세에서 비어 있습니다."
         )
         data.attrs["data_source"] = "public.rag_day1_documents · industry_stat · 2025-12-31"

@@ -21,7 +21,10 @@ def _cached_statistics():
 
 def read_statistics():
     try:
-        return get_statistics()
+        data = get_statistics()
+        if data.attrs.get("source_warning"):
+            st.warning(data.attrs["source_warning"])
+        return data
     except (RuntimeError, ValueError, OSError):
         st.warning("통계를 불러오지 못했습니다. 데이터 파일 또는 저장소 연결을 확인해 주세요. 다른 화면은 계속 이용할 수 있습니다.")
         return None
