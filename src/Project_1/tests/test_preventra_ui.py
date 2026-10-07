@@ -8,6 +8,7 @@ from streamlit.testing.v1 import AppTest
 
 from preventra_ui.gateway import AssistantResult, Evidence
 from preventra_fakes import MemoryStore
+from preventra_plan.storage import SavedPlan
 
 ENTRY = Path(__file__).resolve().parents[1] / "Preventra.py"
 
@@ -21,10 +22,16 @@ def fixture():
     ], columns=["연도", "대업종", "산업중분류", "규모", "지표", "값"])
 
 
+class EmptyPlans:
+    def load(self, identifier):
+        return SavedPlan()
+
+
 class PreventraUITests(unittest.TestCase):
     def setUp(self):
         self.store = MemoryStore()
         patch("preventra_ui.state.get_store", return_value=self.store).start()
+        patch("preventra_plan.ui.get_plan_store", return_value=EmptyPlans()).start()
         self.loader = patch("preventra_ui.statistics_view.get_statistics", return_value=fixture()).start()
         self.dispatch = patch("preventra_ui.gateway.dispatch", return_value=AssistantResult(answer="테스트 일반 응답")).start()
         self.addCleanup(patch.stopall)

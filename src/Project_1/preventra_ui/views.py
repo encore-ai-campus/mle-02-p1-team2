@@ -115,6 +115,13 @@ def render_result(result: AssistantResult, request_id=""):
         return
     if result.answer:
         st.write(result.answer)
+    if result.plan_sources:
+        st.markdown("작업계획서 근거")
+        for item in result.plan_sources:
+            with st.expander(f"[{item.reference}] {item.title}"):
+                st.write(item.excerpt)
+                if item.source:
+                    st.json(item.source)
     if result.cases:
         render_cases(result.cases)
     if result.guides:
@@ -129,7 +136,7 @@ def render_result(result: AssistantResult, request_id=""):
             st.caption(result.statistics_caption)
 
 
-def render_assistant():
+def render_assistant(*, consume=consume_pending):
     st.html('<div class="pv-eyebrow">Your Safety Workspace</div>')
     st.title("Preventra Safety Assistant")
     st.write("작업 상황을 설명하거나 사고사례·안전가이드·통계에 대해 질문해 주세요.")
@@ -150,7 +157,7 @@ def render_assistant():
         with st.chat_message("user"):
             st.write(st.session_state.preventra_pending["question"])
         with st.spinner("질문을 확인하고 필요한 자료를 찾고 있습니다…"):
-            consume_pending()
+            consume()
         st.rerun()
 
 

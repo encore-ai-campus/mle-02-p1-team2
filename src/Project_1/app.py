@@ -15,6 +15,17 @@ from services.visualization import (
 )
 
 
+from preventra_plan import ui as plan_ui
+from preventra_ui import state as plan_state
+from preventra_ui.views import render_assistant as render_plan_assistant
+
+
+def open_plan_conversation():
+    identifier = st.session_state.get("plan_conversation_choice")
+    if identifier and identifier != st.session_state.preventra_conversation_id:
+        plan_state.open_conversation(identifier)
+
+
 st.set_page_config(page_title="산업안전 AI 어시스턴트", page_icon="🦺", layout="wide")
 logger = logging.getLogger(__name__)
 
@@ -123,6 +134,8 @@ st.session_state.setdefault("context_industry", "전체")
 st.session_state.setdefault("context_size", "전체")
 if "safety_session_id" not in st.session_state:
     new_chat()
+plan_state.initialize()
+plan_ui.initialize()
 
 with st.sidebar:
     st.header("통계 조건")
@@ -138,7 +151,7 @@ size = None if st.session_state.context_size == "전체" else st.session_state.c
 
 st.title("산업안전 AI 어시스턴트")
 st.caption("작업·장비를 자연어로 설명하면 SIF 사고사례와 KOSHA GUIDE를 함께 찾아 안전 정보를 제공합니다.")
-safety_tab, stats_tab = st.tabs(["🦺 작업 안전 상담", "📊 산업재해 현황"])
+safety_tab, plan_tab, stats_tab = st.tabs(["\U0001f9ba \uc791\uc5c5 \uc548\uc804 \uc0c1\ub2f4", "\U0001f4cb \uc791\uc5c5\uacc4\ud68d \uc0c1\ub2f4", "\U0001f4ca \uc0b0\uc5c5\uc7ac\ud574 \ud604\ud669"])
 
 with safety_tab:
     st.subheader("작업 안전 상담")
@@ -175,6 +188,43 @@ with safety_tab:
             reply,
         ])
         st.rerun()
+
+
+
+with plan_tab:
+    st.subheader("\uc791\uc5c5\uacc4\ud68d \uc5f0\uacc4 \uc0c1\ub2f4")
+    st.caption("Excel \uacc4\ud68d\uc11c\ub97c \ud655\uc778\ud55c \ud6c4 \ub300\ud654\uc5d0 \uc5f0\uacb0\ud558\uba74, \uacc4\ud68d \ub0b4\uc6a9\uacfc SIF\u00b7KOSHA \uadfc\uac70\ub97c \ud568\uaed8 \uc9c8\uc758\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.")
+    st.caption("\uacc4\ud68d \uae30\ub2a5\uc758 \uc811\uadfc \ubc94\uc704\ub294 \ubc30\ud3ec \uad8c\ud55c\uc5d0 \ub530\ub985\ub2c8\ub2e4. \uc5ed\ud560\ubcc4 \uad8c\ud55c \uc778\uc99d\uc740 \uc81c\uacf5\ud558\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.")
+    if st.session_state.preventra_history_notice:
+        st.warning(st.session_state.preventra_history_notice)
+    recent = st.session_state.preventra_recent
+    titles = {item.conversation_id: item.title for item in recent}
+    current = st.session_state.preventra_conversation_id
+    options = [item.conversation_id for item in recent]
+    if current and current not in options:
+        options.insert(0, current)
+    if options:
+        selected_index = options.index(current) if current in options else 0
+        st.selectbox("\uacc4\ud68d \uc0c1\ub2f4 \ub300\ud654", options, index=selected_index,
+                     format_func=lambda identifier: titles.get(identifier, "\ud604\uc7ac \ub300\ud654"),
+                     key="plan_conversation_choice", on_change=open_plan_conversation)
+    col_new, col_status = st.columns([1, 3])
+    with col_new:
+        st.button("\uc0c8 \uacc4\ud68d \uc0c1\ub2f4", key="plan_new_conversation",
+                  on_click=plan_state.new_chat, disabled=bool(st.session_state.preventra_unsaved))
+    with col_status:
+        st.caption("\uacc4\ud68d\uc11c\uc640 \ub300\ud654\ub294 \uc0c1\ub2f4 \ub300\ud654\ubcc4\ub85c \uc800\uc7a5\ub429\ub2c8\ub2e4.")
+    plan_ui.render_plan()
+    with st.form("plan_question_form", clear_on_submit=True):
+        plan_question = st.text_input("\uacc4\ud68d \uad00\ub828 \uc9c8\ubb38", max_chars=4000,
+                                      placeholder="\uc608: \uc624\ub298 \uc9c0\uac8c\ucc28 \uc791\uc5c5\uc758 \uacc4\ud68d\uc0c1 \uc870\uce58\uc640 \ucd94\uac00 \ud655\uc778\uc0ac\ud56d\uc740?",
+                                      key="plan_question")
+        send_plan_question = st.form_submit_button("\uc9c8\ubb38 \ubcf4\ub0b4\uae30", type="primary",
+                                                   disabled=plan_ui.blocked(),
+                                                   key="plan_question_submit")
+    if send_plan_question:
+        plan_state.queue_question(plan_question, context=plan_ui.current_context())
+    render_plan_assistant(consume=plan_ui.consume_pending)
 
 with stats_tab:
     st.subheader(f"{year}년 산업재해 현황")

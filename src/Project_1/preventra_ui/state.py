@@ -1,5 +1,6 @@
 """UI selection/cache only; PostgreSQL is the durable conversation source."""
 from uuid import uuid4
+from copy import deepcopy
 import streamlit as st
 from preventra_ui import gateway
 from preventra_ui.history import get_store
@@ -69,7 +70,7 @@ def open_conversation(identifier):
         st.session_state.preventra_history_notice = "대화를 불러오지 못했습니다. 현재 대화는 유지됩니다."
 
 
-def queue_question(question):
+def queue_question(question, *, context=None):
     question = question.strip()
     if not question:
         st.session_state.preventra_input_notice = "질문을 입력해 주세요."
@@ -85,7 +86,7 @@ def queue_question(question):
             st.session_state.preventra_input_notice = "대화를 생성하지 못해 질문을 보내지 않았습니다. 잠시 후 다시 시도해 주세요."
             return
     st.session_state.preventra_input_notice = ""
-    st.session_state.preventra_pending = {"id": str(uuid4()), "question": question}
+    st.session_state.preventra_pending = {"id": str(uuid4()), "question": question, "context": deepcopy(context)}
     navigate("안전 어시스턴트")
 
 
@@ -111,7 +112,7 @@ def retry_save():
         st.session_state.preventra_history_notice = SAVE_NOTICE
 
 
-def consume_pending():
+def consume_pending(*, request_context=None, dispatcher=None):
     pending = st.session_state.preventra_pending
     st.session_state.preventra_pending = None
     if not pending or pending["id"] in st.session_state.preventra_consumed:
@@ -127,11 +128,12 @@ def consume_pending():
         return
     request = gateway.AssistantRequest(
         pending["id"], st.session_state.preventra_conversation_id, pending["question"],
+        context=deepcopy(pending.get("context") if pending.get("context") is not None else request_context or {}),
         previous_questions=tuple(t["request"].question for t in turns),
         history=tuple(gateway.ConversationTurn(t["request"].question,
                       t["result"].answer if t["result"].status == "ready" else "이전 답변을 완료하지 못했습니다.") for t in turns))
     try:
-        result = gateway.dispatch(request)
+        result = (dispatcher or gateway.dispatch)(request)
     except Exception:
         result = gateway.AssistantResult(status="error")
     turn = {"request": request, "result": result}
