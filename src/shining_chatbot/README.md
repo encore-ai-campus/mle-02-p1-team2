@@ -14,3 +14,7 @@ The bridge uses .venv/bin/python on Linux/WSL and .venv/Scripts/python.exe on Wi
 Run the standalone path and setup tests from the repository root with:
 
     PYTHONPATH=src python3 -m unittest discover -s src/shining_chatbot/tests -v
+
+The AppTest smoke checks are separate from the standard-library tests and require Python 3.12, Streamlit, and pandas. From the repository root, run them with the project virtual environment:
+
+    PYTHONPATH=src .venv/bin/python -m unittest discover -s smoke_tests -v
