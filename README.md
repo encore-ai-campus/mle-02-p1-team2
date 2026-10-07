@@ -219,6 +219,8 @@ python -m src.sif_rag.rag_cli "지게차 작업 중 보행자 충돌을 예방�
 
 ## 협업 흐름
 
+GPT 패치, Codex 구현, GPT diff 검토를 격리 worktree에서 순차 실행하는 방법은 [GPT와 Codex 순차 협업](docs/codex-gpt-handoff.md)을 참고하세요.
+
 기능 브랜치에서 작업하고 검토를 위한 Pull Request를 연 뒤 `main`에 반영합니다. 실제 API 키, 비밀번호, 공개 허가가 확인되지 않은 데이터 파일은 커밋하지 않습니다.
 
 ## 개인 분석 노트북과 통합 대시보드
