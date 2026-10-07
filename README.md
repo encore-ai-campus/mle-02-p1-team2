@@ -39,7 +39,7 @@ flowchart LR
 
 | 영역 | 기술 |
 | --- | --- |
-| 앱 | Python 3.14, Streamlit |
+| 앱 | Python 3.12.15, Streamlit |
 | 검색·답변 | LangChain, OpenAI 임베딩·언어 모델 |
 | 저장·벡터 검색 | PostgreSQL, pgvector |
 | 통계 처리·시각화 | pandas, Plotly |
@@ -49,25 +49,26 @@ flowchart LR
 
 ### 준비 사항
 
-- Python 3.14 및 프로젝트 의존성을 설치할 환경
+- WSL2 Ubuntu, Python 3.12.15, uv
 - 앱 실행에 필요한 통계 데이터와 SIF·KOSHA 검색 데이터가 연결된 PostgreSQL 또는 설정된 로컬 데이터
 - 생성형 답변·임베딩 기능을 사용할 경우 `OPENAI_API_KEY`
 - 필요한 값은 로컬 `.env` 또는 배포 환경의 Secrets에 설정합니다. 저장소의 `.env.example`에는 변수명만 있으며 자격 증명이 없습니다.
 
-Windows PowerShell에서 저장소 루트로 이동해 실행합니다.
+WSL2 Ubuntu에서 저장소 루트로 이동해 실행합니다. Python 설치와 가상환경 준비는 [팀원 PC 설정 안내](SETUP.md)를 따릅니다.
 
-```powershell
-py -3.14 -m venv .venv
-./.venv/Scripts/python.exe -m pip install -r src/Project_1/requirements.txt
-Copy-Item .env.example .env
+```bash
+cd ~/workspace/your-checkout
+uv sync --python "$HOME/.local/python/3.12.15/bin/python3.12"
+uv pip install --python .venv/bin/python -r src/Project_1/requirements.txt
+cp .env.example .env
 # 필요한 로컬 환경변수를 .env에 설정한 뒤 실행
-./.venv/Scripts/python.exe -m streamlit run streamlit_app.py
+.venv/bin/python -m streamlit run streamlit_app.py
 ```
 
-필요한 데이터와 DB 설정은 PC마다 다를 수 있습니다. 전체 설치, 환경변수, DB 준비는 [팀원 PC 설정 안내](SETUP.md)를 확인하세요. 로컬 SIF 검색 CLI는 다음처럼 실행할 수 있습니다.
+필요한 데이터와 DB 설정은 PC마다 다를 수 있습니다. 엔트리포인트와 데이터베이스 준비는 [팀원 PC 설정 안내](SETUP.md)를 확인하세요. 로컬 SIF 검색 CLI는 다음처럼 실행합니다.
 
-```powershell
-./.venv/Scripts/python.exe -m src.sif_rag.rag_cli "지게차 작업 중 보행자 충돌을 예방하려면?" -k 2
+```bash
+.venv/bin/python -m src.sif_rag.rag_cli "지게차 작업 중 보행자 충돌을 예방하려면?" -k 2
 ```
 
 CLI의 기본 코퍼스는 `data/processed/sif_rag_documents.jsonl`입니다. 데이터 파일은 저장소에 포함되어 있지 않으므로 [데이터 출처 안내](docs/data-sources.md)에 따라 별도로 준비해야 합니다.
