@@ -1,0 +1,20 @@
+[theme]
+base = "light"
+primaryColor = "#087F73"
+backgroundColor = "#FAFBF9"
+secondaryBackgroundColor = "#F0F3F0"
+textColor = "#1C3035"
+font = "'Noto Sans KR':https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap"
+baseFontSize = 16
+baseRadius = "0.5rem"
+buttonRadius = "0.5rem"
+borderColor = "#DDE4DF"
+showWidgetBorder = true
+headingFontWeights = [700, 650, 600, 600, 600, 600]
+
+[theme.sidebar]
+backgroundColor = "#F0F3F0"
+secondaryBackgroundColor = "#E5ECE7"
+
+[client]
+toolbarMode = "minimal"
