@@ -39,7 +39,7 @@ flowchart LR
 
 | 영역 | 기술 |
 | --- | --- |
-| 앱 | Python 3.12.15, Streamlit |
+| 앱 | Python 3.12.14, Streamlit |
 | 검색·답변 | LangChain, OpenAI 임베딩·언어 모델 |
 | 저장·벡터 검색 | PostgreSQL, pgvector |
 | 통계 처리·시각화 | pandas, Plotly |
@@ -49,7 +49,7 @@ flowchart LR
 
 ### 준비 사항
 
-- WSL2 Ubuntu, Python 3.12.15, uv
+- WSL2 Ubuntu, Python 3.12.14, uv
 - 앱 실행에 필요한 통계 데이터와 SIF·KOSHA 검색 데이터가 연결된 PostgreSQL 또는 설정된 로컬 데이터
 - 생성형 답변·임베딩 기능을 사용할 경우 `OPENAI_API_KEY`
 - 필요한 값은 로컬 `.env` 또는 배포 환경의 Secrets에 설정합니다. 저장소의 `.env.example`에는 변수명만 있으며 자격 증명이 없습니다.
@@ -58,7 +58,7 @@ WSL2 Ubuntu에서 저장소 루트로 이동해 실행합니다. Python 설치�
 
 ```bash
 cd ~/workspace/your-checkout
-uv sync --python "$HOME/.local/python/3.12.15/bin/python3.12"
+uv sync --frozen --python "$HOME/.local/python/3.12.14/bin/python3.12"
 uv pip install --python .venv/bin/python -r src/Project_1/requirements.txt
 cp .env.example .env
 # 필요한 로컬 환경변수를 .env에 설정한 뒤 실행
