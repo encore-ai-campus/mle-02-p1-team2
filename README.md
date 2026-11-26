@@ -157,7 +157,7 @@ SIF의 키워드 점수는 **IDF 가중 문자열 일치**이며 BM25 구현으�
 
 | 구분 | 사용 기술 | 프로젝트에서의 역할 |
 | --- | --- | --- |
-| 언어 / 환경 | Python **3.12**, uv | 환경·의존성 관리 |
+| 언어 / 환경 | Python **3.12.14**, uv | 환경·의존성 관리 |
 | 데이터 처리 | pandas, NumPy, openpyxl | 통계 정규화, 작업계획서 파싱, 집계 |
 | 앱 / 시각화 | Streamlit **1.64.0**, Plotly, HTML·CSS·SVG | 역할별 화면, 대화 UI, 일정·사고 유형 그래프 |
 | Agent | LangChain, Pydantic | 도구 선택, 입력·최종 응답 구조 검증 |
@@ -214,7 +214,7 @@ SIF의 키워드 점수는 **IDF 가중 문자열 일치**이며 BM25 구현으�
 
 ### 사전 준비
 
-- Python **3.12**, [uv](https://docs.astral.sh/uv/)
+- Python **3.12.14**, [uv](https://docs.astral.sh/uv/)
 - OpenAI API Key와 코드에 설정된 모델에 대한 이용 권한
 - 기존 검색 데이터가 적재된 **Supabase PostgreSQL + pgvector**
 - 통계 CSV가 있는 **Supabase Private Storage**
@@ -228,7 +228,7 @@ SIF의 키워드 점수는 **IDF 가중 문자열 일치**이며 BM25 구현으�
 git clone --branch fix/plan-case-summary https://github.com/fun5307/mle-02-p1-team2.git
 cd mle-02-p1-team2
 
-uv venv --python 3.12
+uv venv --python 3.12.14
 uv pip install --python .venv/bin/python -r src_v3/Project_1/requirements.txt
 ```
 
@@ -309,6 +309,8 @@ mle-02-p1-team2/
 │   ├── .streamlit/secrets.toml.example
 │   └── requirements.txt              # 앱 실행 의존성
 ├── src/                              # 기존 앱·수집·검색 실험 코드
+├── src/shining_chatbot/              # 독립 실행형 소스 스냅샷 (루트 앱 미연결)
+│   └── README.md                     # 실행·SANUP-P 연결·테스트 안내
 ├── notebooks/                        # 데이터 분석 작업 공간
 ├── docs/                             # 설계·출처·평가 절차 문서
 ├── data/                             # 데이터 안내 / 원본·가공물은 별도 관리
